@@ -21,7 +21,7 @@ jobs:
     uses: week-book/github-actions/.github/workflows/update-kustomize.yml@v1
     with:
       manifests_repo: week-book/k8s-manifests
-      manifests_path: web-site/fronend
+      manifests_path: web-site/frontend
       service_name: frontend
       image_tag: sha-${{ github.sha }}
     secrets:
