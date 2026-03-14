@@ -17,7 +17,7 @@ export interface Post extends PostSummary {
   html: string;
 }
 
-const BASE_URL = import.meta.env.VITE_S3_POSTS_URL as string;
+const BASE_URL = 'https://s3.week-book.ru/posts';
 
 /**
  * Загружает список постов из index.json в MinIO.
