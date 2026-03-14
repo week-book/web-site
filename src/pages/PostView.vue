@@ -1,23 +1,35 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { loadPost, type Post } from '../utils/loadPosts';
+
+const props = defineProps<{ slug: string }>();
+
+const post = ref<Post | null>(null);
+const loading = ref(true);
+const error = ref<string | null>(null);
+
+onMounted(async () => {
+  try {
+    post.value = await loadPost(props.slug);
+  } catch (e) {
+    error.value = 'Не удалось загрузить пост.';
+    console.error(e);
+  } finally {
+    loading.value = false;
+  }
+});
+</script>
+
 <template>
-  <article class="post" v-if="post">
+  <p v-if="loading">Загрузка...</p>
+  <p v-else-if="error">{{ error }}</p>
+  <p v-else-if="!post">Пост не найден.</p>
+  <article class="post" v-else>
     <h1>{{ post.meta.title }}</h1>
     <div class="meta">{{ post.meta.date }}</div>
     <div v-html="post.html"></div>
   </article>
 </template>
-
-<script setup>
-import { onMounted, ref } from 'vue';
-import { loadPosts } from '../utils/loadPosts';
-
-const props = defineProps({ slug: String });
-const post = ref(null);
-
-onMounted(() => {
-  const posts = loadPosts();
-  post.value = posts.find(p => p.slug === props.slug);
-});
-</script>
 
 <style scoped>
 :deep(img) {

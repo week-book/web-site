@@ -1,15 +1,30 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { loadPosts } from '../utils/loadPosts';
+import { ref, onMounted } from 'vue';
+import { loadPosts, type PostSummary } from '../utils/loadPosts';
 import PostCard from '../components/PostCard.vue';
 
-const posts = computed(() => loadPosts());
+const posts = ref<PostSummary[]>([]);
+const loading = ref(true);
+const error = ref<string | null>(null);
+
+onMounted(async () => {
+  try {
+    posts.value = await loadPosts();
+  } catch (e) {
+    error.value = 'Не удалось загрузить посты.';
+    console.error(e);
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <template>
   <section>
     <h1>All posts</h1>
-    <template v-if="posts.length">
+    <p v-if="loading">Загрузка...</p>
+    <p v-else-if="error">{{ error }}</p>
+    <template v-else-if="posts.length">
       <PostCard
         v-for="post in posts"
         :key="post.slug"
@@ -20,6 +35,6 @@ const posts = computed(() => loadPosts());
         :tags="post.meta.tags"
       />
     </template>
-    <p v-else>No posts yet. Add a <code>.md</code> file to <code>src/posts/</code> to get started.</p>
+    <p v-else>Постов пока нет.</p>
   </section>
 </template>

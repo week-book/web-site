@@ -1,45 +1,50 @@
 import { marked } from 'marked';
 
-function parseFrontmatter(raw: string) {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-  if (!match) return { data: {}, content: raw };
-
-  const data: Record<string, unknown> = {};
-  for (const line of match[1].split('\n')) {
-    const colonIdx = line.indexOf(':');
-    if (colonIdx === -1) continue;
-    const key = line.slice(0, colonIdx).trim();
-    const val = line.slice(colonIdx + 1).trim();
-    if (val.startsWith('[') && val.endsWith(']')) {
-      data[key] = val.slice(1, -1).split(',').map(s => s.trim()).filter(Boolean);
-    } else {
-      data[key] = val;
-    }
-  }
-  return { data, content: match[2] };
+export interface PostMeta {
+  title: string;
+  date: string | null;
+  excerpt: string;
+  tags: string[];
 }
 
-export function loadPosts() {
-  const modules = import.meta.glob('../posts/*.md', { eager: true, query: '?raw', import: 'default' });
+export interface PostSummary {
+  slug: string;
+  filename: string;
+  meta: PostMeta;
+}
 
-  const posts = Object.entries(modules).map(([path, raw]) => {
-    const filename = path.split('/').pop()!;
-    const slug = filename.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/\.md$/, '');
-    const { data, content } = parseFrontmatter(raw as string);
-    const html = marked(content);
-    return {
-      slug,
-      filename,
-      html,
-      meta: {
-        title: (data.title as string) || slug,
-        date: data.date ? String(data.date).slice(0, 10) : null,
-        excerpt: (data.excerpt as string) || '',
-        tags: (data.tags as string[]) || []
-      }
-    };
-  });
+export interface Post extends PostSummary {
+  html: string;
+}
 
-  posts.sort((a, b) => (b.meta.date || '').localeCompare(a.meta.date || ''));
-  return posts;
+const BASE_URL = import.meta.env.VITE_S3_POSTS_URL as string;
+
+/**
+ * Загружает список постов из index.json в MinIO.
+ * Используется на страницах Home и Posts.
+ */
+export async function loadPosts(): Promise<PostSummary[]> {
+  const res = await fetch(`${BASE_URL}/index.json`);
+  if (!res.ok) throw new Error(`Не удалось загрузить index.json: ${res.status}`);
+  const posts: PostSummary[] = await res.json();
+  return posts.sort((a, b) => (b.meta.date ?? '').localeCompare(a.meta.date ?? ''));
+}
+
+/**
+ * Загружает один пост по slug — сначала ищет filename в index.json,
+ * потом загружает сам .md файл.
+ * Используется на странице PostView.
+ */
+export async function loadPost(slug: string): Promise<Post | null> {
+  const posts = await loadPosts();
+  const summary = posts.find(p => p.slug === slug);
+  if (!summary) return null;
+
+  const res = await fetch(`${BASE_URL}/${summary.filename}`);
+  if (!res.ok) throw new Error(`Не удалось загрузить пост ${summary.filename}: ${res.status}`);
+
+  const markdown = await res.text();
+  const html = await marked(markdown);
+
+  return { ...summary, html };
 }
