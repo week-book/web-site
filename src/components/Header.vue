@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle.vue';
       <RouterLink class="nav__logo" to="/">Week-book</RouterLink>
       <nav class="nav__links">
         <RouterLink class="nav__link" to="/">Посты</RouterLink>
+        <RouterLink class="nav__link" to="/games">Игры</RouterLink>
         <RouterLink class="nav__link" to="/about">О себе</RouterLink>
       </nav>
       <ThemeToggle />
