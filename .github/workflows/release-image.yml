@@ -23,6 +23,6 @@ jobs:
       manifests_repo: week-book/k8s-manifests
       manifests_path: web-site/frontend
       service_name: frontend
-      image_tag: sha-${{ github.sha }}
+      image_tag: ${{ github.ref_name }}
     secrets:
       K8S_REPO_TOKEN: ${{ secrets.K8S_REPO_TOKEN }}
