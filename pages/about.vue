@@ -1,9 +1,9 @@
 <script setup lang="ts">
 useSeoMeta({
   title: 'О себе',
-  description: 'Немного о Даниле — авторе блога Week-book',
+  description: 'Немного о Синицком Даниле — авторе блога Week-book',
   ogTitle: 'О себе — Week-book',
-  ogDescription: 'Немного о Даниле — авторе блога Week-book',
+  ogDescription: 'Немного о Синицком Даниле — авторе блога Week-book',
 })
 </script>
 
