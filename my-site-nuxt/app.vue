@@ -10,6 +10,14 @@ import { useUiStore } from '/stores/ui';
 
 const ui = useUiStore();
 
+useHead({
+  htmlAttrs: { lang: 'ru' },
+  titleTemplate: (title) => title ? `${title} — Week-book` : 'Week-book',
+  meta: [
+    { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+  ],
+})
+
 onMounted(() => {
   document.documentElement.setAttribute('data-theme', ui.theme === 'dark' ? 'dark' : '');
 });

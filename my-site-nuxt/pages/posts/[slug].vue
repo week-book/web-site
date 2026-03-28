@@ -21,6 +21,13 @@ const html = computed(() => markdown.value ? marked(markdown.value) : '');
 const loading = computed(() => !posts.value && !postsError.value);
 const error = computed(() => postsError.value ? 'Не удалось загрузить пост.' : null);
 const post = computed(() => summary.value ? { ...summary.value, html: html.value } : null);
+
+useSeoMeta({
+  title: () => post.value?.meta.title ?? 'Пост',
+  description: () => post.value?.meta.excerpt ?? '',
+  ogTitle: () => post.value?.meta.title ?? 'Пост',
+  ogDescription: () => post.value?.meta.excerpt ?? '',
+})
 </script>
 
 <template>

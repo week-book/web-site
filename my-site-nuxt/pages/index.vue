@@ -11,6 +11,13 @@ const { data: posts, error: fetchError, pending } = await useFetch<any[]>(
 
 const loading = computed(() => pending.value);
 const error = computed(() => fetchError.value ? 'Не удалось загрузить посты.' : null);
+
+useSeoMeta({
+  title: 'Посты',
+  description: 'Все статьи блога Week-book',
+  ogTitle: 'Посты — Week-book',
+  ogDescription: 'Все статьи блога Week-book',
+})
 </script>
 
 <template>

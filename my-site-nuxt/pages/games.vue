@@ -146,10 +146,16 @@ function startGame(diff?: Difficulty) {
   );
   seconds.value = 0;
   if (timer) clearInterval(timer);
-  timer = setInterval(() => { if (!gameWon.value) seconds.value++ }, 1000);
+  if (import.meta.client) {
+    timer = setInterval(() => { if (!gameWon.value) seconds.value++ }, 1000);
+  }
 }
 
-startGame();
+onMounted(() => {
+  startGame();
+  g2048Start();
+});
+
 onUnmounted(() => { if (timer) clearInterval(timer); });
 
 const formattedTime = computed(() => {
@@ -283,7 +289,6 @@ function g2048Start() {
   g2048WonAcked.value = false;
 }
 
-g2048Start();
 
 function slideRow(row: number[]): [number[], number] {
   const nums = row.filter(v => v !== 0);
@@ -441,6 +446,12 @@ function handleKey(e: KeyboardEvent) {
   if (e.key === 'ArrowLeft' && c > 0) selected.value = [r, c - 1];
   if (e.key === 'ArrowRight' && c < 8) selected.value = [r, c + 1];
 }
+useSeoMeta({
+  title: 'Игры',
+  description: 'Судоку и 2048 — небольшой уголок для отдыха на Week-book',
+  ogTitle: 'Игры — Week-book',
+  ogDescription: 'Судоку и 2048 — небольшой уголок для отдыха на Week-book',
+})
 </script>
 
 <template>
