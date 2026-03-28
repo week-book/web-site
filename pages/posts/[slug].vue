@@ -23,9 +23,9 @@ const error = computed(() => postsError.value ? 'Не удалось загру�
 const post = computed(() => summary.value ? { ...summary.value, html: html.value } : null);
 
 useSeoMeta({
-  title: () => post.value?.meta.title ?? 'Пост',
+  title: () => post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book',
   description: () => post.value?.meta.excerpt ?? '',
-  ogTitle: () => post.value?.meta.title ?? 'Пост',
+  ogTitle: () => post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book',
   ogDescription: () => post.value?.meta.excerpt ?? '',
 })
 </script>
