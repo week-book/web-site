@@ -1,21 +1,27 @@
+<template>
+  <Header />
+  <main class="main">
+    <NuxtPage />
+  </main>
+</template>
+
 <script setup lang="ts">
-import Header from './components/Header.vue';
-import { useUiStore } from './stores/ui';
-import { onMounted } from 'vue';
+import { useUiStore } from '/stores/ui';
 
 const ui = useUiStore();
+
+useHead({
+  htmlAttrs: { lang: 'ru' },
+  titleTemplate: (title) => title ? `${title} — Week-book` : 'Week-book',
+  meta: [
+    { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+  ],
+})
 
 onMounted(() => {
   document.documentElement.setAttribute('data-theme', ui.theme === 'dark' ? 'dark' : '');
 });
 </script>
-
-<template>
-  <Header />
-  <main class="main">
-    <RouterView />
-  </main>
-</template>
 
 <style>
 *, *::before, *::after {
@@ -53,3 +59,4 @@ a {
   padding: 2rem 1rem;
 }
 </style>
+

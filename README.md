@@ -1,6 +1,6 @@
 # week-book 📓
 
-Личный блог [Данила Синицкого](https://week-book.ru/about) — небольшой уголок в интернете без рекламы и алгоритмов. Посты пишутся в Obsidian, хранятся как Markdown-файлы на MinIO S3 и отдаются SPA на Vue 3.
+Личный блог [Данила Синицкого](https://week-book.ru/about) — небольшой уголок в интернете без рекламы и алгоритмов. Посты пишутся в Obsidian, хранятся как Markdown-файлы на MinIO S3 и рендерятся на сервере через Nuxt 3 SSR.
 
 🌐 **[week-book.ru](https://week-book.ru)**
 
@@ -10,14 +10,14 @@
 
 | Слой | Технология |
 |---|---|
-| Фреймворк | Vue 3 + TypeScript |
-| Сборка | Vite |
-| Роутинг | Vue Router 5 |
+| Фреймворк | Nuxt 3 + TypeScript |
+| Рендеринг | SSR (Server-Side Rendering) |
+| Сборка | Vite + Nitro |
+| Роутинг | Nuxt File-based routing |
 | Стейт | Pinia |
 | Рендер постов | marked (Markdown → HTML) |
 | Хранилище контента | MinIO S3 (`s3.week-book.ru`) |
-| Деплой | Docker + Nginx |
-| Тесты | Vitest |
+| Деплой | Docker + Node.js |
 | Линтер / форматер | ESLint + oxlint + Prettier |
 
 ---
@@ -25,13 +25,18 @@
 ## Структура проекта
 
 ```
-src/
-├── components/      # Header, PostCard, ThemeToggle
-├── pages/           # Home, Posts, PostView, About, Games
-├── router/          # Vue Router — маршруты SPA
-├── stores/          # Pinia-сторы
+├── app/
+│   └── app.vue          # корневой компонент
+├── components/          # Header, PostCard, ThemeToggle
+├── pages/               # маршруты по файловой системе
+│   ├── index.vue        # /
+│   ├── about.vue        # /about
+│   ├── games.vue        # /games
+│   └── posts/
+│       └── [slug].vue   # /posts/:slug
+├── stores/              # Pinia-сторы
 └── utils/
-    └── loadPosts.ts # Загрузка постов из S3
+    └── loadPosts.ts     # типы для постов из S3
 ```
 
 ### Как работают посты
@@ -44,18 +49,18 @@ s3.week-book.ru/posts/
 └── 2026-03-16-day-21.md  # сами посты
 ```
 
-`loadPosts.ts` тянет `index.json`, сортирует посты по дате и рендерит нужный `.md` через `marked`.
+При запросе страницы сервер Nuxt получает `index.json`, находит нужный пост, рендерит Markdown через `marked` и отдаёт браузеру готовый HTML — со всеми мета-тегами для SEO и соцсетей.
 
 ---
 
 ## Страницы
 
-| Маршрут | Описание |
-|---|---|
-| `/` | Лента постов |
-| `/posts/:slug` | Отдельный пост |
-| `/about` | О себе |
-| `/games` | Судоку |
+| Маршрут | Описание | SSR |
+|---|---|---|
+| `/` | Лента постов | ✅ |
+| `/posts/:slug` | Отдельный пост | ✅ |
+| `/about` | О себе | ✅ |
+| `/games` | Судоку и 2048 | ❌ client-only |
 
 ---
 
@@ -72,23 +77,21 @@ npm run dev
 
 ```bash
 npm run build        # продакшн-сборка
-npm run test:unit    # юнит-тесты через Vitest
-npm run lint         # oxlint + eslint
-npm run format       # prettier
+npm run preview      # предпросмотр продакшн-сборки локально
 ```
 
 ---
 
 ## Docker
 
-Двухэтапная сборка: Node собирает проект, Nginx отдаёт статику.
+Двухэтапная сборка: первый этап собирает проект через Nuxt, второй запускает Nitro-сервер.
 
 ```bash
 docker build -t week-book .
-docker run -p 80:80 week-book
+docker run -p 3000:3000 week-book
 ```
 
-Nginx настроен на SPA-fallback — все пути отдают `index.html`.
+Сервер поднимается на порту `3000`. В продакшне перед ним стоит reverse proxy.
 
 ---
 
@@ -111,6 +114,8 @@ Nginx настроен на SPA-fallback — все пути отдают `index
 }
 ```
 
+Новый пост появится на сайте сразу — перезапуск сервера не нужен.
+
 ---
 
 ## Планы
@@ -119,7 +124,7 @@ Nginx настроен на SPA-fallback — все пути отдают `index
 - [ ] Счётчик просмотров и реакции
 - [ ] Telegram-канал с автоматическими анонсами
 - [ ] Монетизация для покрытия расходов на инфраструктуру
-- [ ] Раздел с играми — судоку уже есть ✅
+- [ ] Sitemap для автоматической индексации постов
 
 ---
 

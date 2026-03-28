@@ -10,9 +10,9 @@ defineProps<{
 
 <template>
   <article class="post-card">
-    <RouterLink :to="`/posts/${slug}`">
+    <NuxtLink :to="`/posts/${slug}`">
       <h2 class="post-card__title">{{ title }}</h2>
-    </RouterLink>
+    </NuxtLink>
     <div class="post-card__meta" v-if="date">{{ date }}</div>
     <p class="post-card__excerpt" v-if="excerpt">{{ excerpt }}</p>
     <div class="post-card__tags" v-if="tags && tags.length">

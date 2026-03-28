@@ -37,3 +37,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Nuxt 2 / Nuxt 3
+.nuxt/
+.output/

@@ -1,4 +1,11 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+useSeoMeta({
+  title: 'О себе',
+  description: 'Немного о Синицком Даниле — авторе блога Week-book',
+  ogTitle: 'О себе — Week-book',
+  ogDescription: 'Немного о Синицком Даниле — авторе блога Week-book',
+})
+</script>
 
 <template>
   <article class="about">

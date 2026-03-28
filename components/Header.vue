@@ -5,11 +5,11 @@ import ThemeToggle from './ThemeToggle.vue';
 <template>
   <header class="header">
     <nav class="nav">
-      <RouterLink class="nav__logo" to="/">Week-book</RouterLink>
+      <NuxtLink class="nav__logo" to="/">Week-book</NuxtLink>
       <nav class="nav__links">
-        <RouterLink class="nav__link" to="/">Посты</RouterLink>
-        <RouterLink class="nav__link" to="/games">Игры</RouterLink>
-        <RouterLink class="nav__link" to="/about">О себе</RouterLink>
+        <NuxtLink class="nav__link" to="/">Посты</NuxtLink>
+        <NuxtLink class="nav__link" to="/games">Игры</NuxtLink>
+        <NuxtLink class="nav__link" to="/about">О себе</NuxtLink>
       </nav>
       <ThemeToggle />
     </nav>
