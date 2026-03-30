@@ -3,6 +3,8 @@ definePageMeta({ ssr: false })
 import { ref } from 'vue'
 import SudokuGame from '../components/games/SudokuGame.vue'
 import Game2048 from '../components/games/Game2048.vue'
+import { useRoute, useRouter } from 'vue-router'
+import { onMounted, watch } from 'vue'
 
 type GameType = 'sudoku' | '2048'
 
@@ -13,6 +15,21 @@ const game2048Ref = ref<InstanceType<typeof import('~/components/games/Game2048.
 function handleKey(e: KeyboardEvent) {
   if (activeGame.value === '2048') game2048Ref.value?.handleKey(e)
   else sudokuRef.value?.handleKey(e)
+}
+
+const route = useRoute()
+const router = useRouter()
+
+onMounted(() => {
+  const game = route.query.game
+  if (game === '2048' || game === 'sudoku') {
+    activeGame.value = game
+  }
+})
+
+function setGame(game: GameType) {
+  activeGame.value = game
+  router.replace({ query: { ...route.query, game } })
 }
 
 useSeoMeta({
@@ -33,11 +50,12 @@ useSeoMeta({
     <div class="game-selector">
       <button
         :class="['game-tab', activeGame === 'sudoku' ? 'game-tab--active' : '']"
-        @click="activeGame = 'sudoku'"
+        @click="setGame('sudoku')"
       >数独 Судоку</button>
+
       <button
         :class="['game-tab', activeGame === '2048' ? 'game-tab--active' : '']"
-        @click="activeGame = '2048'"
+        @click="setGame('2048')"
       >2048</button>
     </div>
 
