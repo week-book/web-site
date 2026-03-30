@@ -41,3 +41,6 @@ __screenshots__/
 # Nuxt 2 / Nuxt 3
 .nuxt/
 .output/
+
+# dist
+*.zip
