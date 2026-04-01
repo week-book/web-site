@@ -33,7 +33,7 @@ function setGame(game: GameType) {
 }
 
 useSeoMeta({
-  title: 'Игры',
+  title: 'Игры — Week-book',
   description: 'Судоку и 2048 — небольшой уголок для отдыха на Week-book',
   ogTitle: 'Игры — Week-book',
   ogDescription: 'Судоку и 2048 — небольшой уголок для отдыха на Week-book',
