@@ -10,6 +10,16 @@ import { useUiStore } from '/stores/ui';
 
 const ui = useUiStore();
 
+useHead({
+  htmlAttrs: { lang: 'ru' },
+  meta: [
+    { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+  ],
+  link: [
+    { rel: 'sitemap', type: 'application/xml', href: '/sitemap.xml' }
+  ]
+})
+
 onMounted(() => {
   document.documentElement.setAttribute('data-theme', ui.theme === 'dark' ? 'dark' : '');
 });

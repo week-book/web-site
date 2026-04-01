@@ -13,7 +13,7 @@ const loading = computed(() => pending.value);
 const error = computed(() => fetchError.value ? 'Не удалось загрузить посты.' : null);
 
 useSeoMeta({
-  title: 'Посты',
+  title: 'Посты — Week-book',
   description: 'Все статьи блога Week-book',
   ogTitle: 'Посты — Week-book',
   ogDescription: 'Все статьи блога Week-book',
