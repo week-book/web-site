@@ -3,8 +3,18 @@ import { onMounted } from 'vue'
 import { use2048 } from '~/composables/use2048'
 
 const {
-  board, score, best, won, over, wonAcked,
-  startGame, onTouchStart, onTouchEnd, tileStyle, tileFontSize, handleKey,
+  board,
+  score,
+  best,
+  won,
+  over,
+  wonAcked,
+  startGame,
+  onTouchStart,
+  onTouchEnd,
+  tileStyle,
+  tileFontSize,
+  handleKey,
 } = use2048()
 
 onMounted(() => startGame())
@@ -33,11 +43,7 @@ defineExpose({ handleKey })
       </div>
     </div>
 
-    <div
-      class="grid-wrap"
-      @touchstart.passive="onTouchStart"
-      @touchend.passive="onTouchEnd"
-    >
+    <div class="grid-wrap" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
       <!-- Win overlay -->
       <div v-if="won && !wonAcked" class="win-overlay">
         <div class="win-box">
@@ -103,7 +109,10 @@ defineExpose({ handleKey })
 }
 
 /* Score */
-.score-group { display: flex; gap: 0.5rem; }
+.score-group {
+  display: flex;
+  gap: 0.5rem;
+}
 .score-box {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -151,14 +160,24 @@ defineExpose({ handleKey })
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
   font-weight: 700;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
-.tile--filled { animation: pop 0.12s ease-out; }
+.tile--filled {
+  animation: pop 0.12s ease-out;
+}
 
 @keyframes pop {
-  0%   { transform: scale(0.85); }
-  60%  { transform: scale(1.06); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Win / game-over overlay */
@@ -173,10 +192,25 @@ defineExpose({ handleKey })
   z-index: 10;
   border-radius: 8px;
 }
-.win-box { text-align: center; padding: 2rem; }
-.win-icon { font-size: 3rem; line-height: 1; margin-bottom: 0.5rem; }
-.win-text { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
-.win-subtext { font-size: 0.9rem; opacity: 0.6; margin-bottom: 1rem; }
+.win-box {
+  text-align: center;
+  padding: 2rem;
+}
+.win-icon {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.win-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+.win-subtext {
+  font-size: 0.9rem;
+  opacity: 0.6;
+  margin-bottom: 1rem;
+}
 .win-time {
   font-size: 2rem;
   font-variant-numeric: tabular-nums;
@@ -184,7 +218,11 @@ defineExpose({ handleKey })
   opacity: 0.6;
   margin-bottom: 1rem;
 }
-.win-row { display: flex; gap: 0.6rem; justify-content: center; }
+.win-row {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
 .win-btn {
   background: var(--color-text);
   color: var(--color-bg);
@@ -196,7 +234,9 @@ defineExpose({ handleKey })
   font-weight: 600;
   transition: opacity 0.15s;
 }
-.win-btn:hover { opacity: 0.8; }
+.win-btn:hover {
+  opacity: 0.8;
+}
 .win-btn--outline {
   background: none;
   color: var(--color-text);
@@ -218,8 +258,17 @@ defineExpose({ handleKey })
   opacity: 0.7;
   transition: opacity 0.15s;
 }
-.action-btn:hover { opacity: 1; }
-.action-icon { font-size: 1rem; }
+.action-btn:hover {
+  opacity: 1;
+}
+.action-icon {
+  font-size: 1rem;
+}
 
-.hint { text-align: center; font-size: 0.78rem; opacity: 0.4; margin: 0; }
+.hint {
+  text-align: center;
+  font-size: 0.78rem;
+  opacity: 0.4;
+  margin: 0;
+}
 </style>

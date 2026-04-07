@@ -1,16 +1,19 @@
 <script setup lang="ts">
-const config = useRuntimeConfig();
+import type PostSummary from '../types/post.ts'
 
-const { data: posts, error: fetchError, pending } = await useFetch<any[]>(
-  `${config.public.postsBaseUrl}/index.json`,
-  {
-    transform: (data) =>
-      [...data].sort((a, b) => (b.meta.date ?? '').localeCompare(a.meta.date ?? ''))
-  }
-);
+const config = useRuntimeConfig()
 
-const loading = computed(() => pending.value);
-const error = computed(() => fetchError.value ? 'Не удалось загрузить посты.' : null);
+const {
+  data: posts,
+  error: fetchError,
+  pending,
+} = await useFetch<PostSummary[]>(`${config.public.postsBaseUrl}/index.json`, {
+  transform: (data) =>
+    [...data].sort((a, b) => (b.meta.date ?? '').localeCompare(a.meta.date ?? '')),
+})
+
+const loading = computed(() => pending.value)
+const error = computed(() => (fetchError.value ? 'Не удалось загрузить посты.' : null))
 
 useSeoMeta({
   title: 'Посты — Week-book',

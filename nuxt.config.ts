@@ -3,8 +3,20 @@ export default defineNuxtConfig({
   ssr: true,
   runtimeConfig: {
     public: {
-      postsBaseUrl: 'https://s3.week-book.ru/posts'
-    }
+      postsBaseUrl: 'https://s3.week-book.ru/posts',
+    },
+  },
+  sitemap: {
+    sitemapName: 'sitemap.xml',
+    hosts: ['https://week-book.ru'],
+    urls: async () => {
+      const res = await fetch('https://s3.week-book.ru/posts/index.json')
+      const posts = await res.json()
+      return posts.map((p: { slug: string; meta?: { date?: string } }) => ({
+        loc: `/posts/${p.slug}`,
+        lastmod: p.meta.date ?? undefined,
+      }))
+    },
   },
   sitemap: {
     sitemapName: 'sitemap.xml',
@@ -19,5 +31,5 @@ export default defineNuxtConfig({
     }
   },
   compatibilityDate: '2024-11-01',
-  devtools: { enabled: true }
+  devtools: { enabled: true },
 })

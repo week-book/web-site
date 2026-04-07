@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { useUiStore } from '../stores/ui';
+import { useUiStore } from '../stores/ui'
 
-const ui = useUiStore();
+const ui = useUiStore()
 
 function toggle() {
-  ui.setTheme(ui.theme === 'dark' ? 'light' : 'dark');
+  ui.setTheme(ui.theme === 'dark' ? 'light' : 'dark')
 }
 </script>
 
 <template>
-  <button class="theme-toggle" @click="toggle" :aria-label="`Switch to ${ui.theme === 'dark' ? 'light' : 'dark'} mode`">
+  <button
+    class="theme-toggle"
+    @click="toggle"
+    :aria-label="`Switch to ${ui.theme === 'dark' ? 'light' : 'dark'} mode`"
+  >
     {{ ui.theme === 'dark' ? '☀️' : '🌙' }}
   </button>
 </template>

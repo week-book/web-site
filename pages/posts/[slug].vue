@@ -1,31 +1,33 @@
 <script setup lang="ts">
-const route = useRoute();
-const config = useRuntimeConfig();
+import type PostSummary from '../types/post.ts'
 
-const { data: posts, error: postsError } = await useFetch<any[]>(
-  `${config.public.postsBaseUrl}/index.json`
-);
+const route = useRoute()
+const config = useRuntimeConfig()
 
-const summary = computed(() =>
-  posts.value?.find((p: any) => p.slug === route.params.slug) ?? null
-);
+const { data: posts, error: postsError } = await useFetch<PostSummary[]>(
+  `${config.public.postsBaseUrl}/index.json`,
+)
+
+const summary = computed(
+  () => posts.value?.find((p: PostSummary) => p.slug === route.params.slug) ?? null,
+)
 
 const { data: markdown } = await useFetch<string>(
-  () => summary.value ? `${config.public.postsBaseUrl}/${summary.value.filename}` : null,
-  { watch: [summary] }
-);
+  () => (summary.value ? `${config.public.postsBaseUrl}/${summary.value.filename}` : null),
+  { watch: [summary] },
+)
 
-const { marked } = await import('marked');
-const html = computed(() => markdown.value ? marked(markdown.value) : '');
+const { marked } = await import('marked')
+const html = computed(() => (markdown.value ? marked(markdown.value) : ''))
 
-const loading = computed(() => !posts.value && !postsError.value);
-const error = computed(() => postsError.value ? 'Не удалось загрузить пост.' : null);
-const post = computed(() => summary.value ? { ...summary.value, html: html.value } : null);
+const loading = computed(() => !posts.value && !postsError.value)
+const error = computed(() => (postsError.value ? 'Не удалось загрузить пост.' : null))
+const post = computed(() => (summary.value ? { ...summary.value, html: html.value } : null))
 
 useSeoMeta({
-  title: () => post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book',
+  title: () => (post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book'),
   description: () => post.value?.meta.excerpt ?? '',
-  ogTitle: () => post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book',
+  ogTitle: () => (post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book'),
   ogDescription: () => post.value?.meta.excerpt ?? '',
 })
 </script>

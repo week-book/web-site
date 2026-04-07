@@ -3,9 +3,19 @@ import { onMounted } from 'vue'
 import { useSudoku, type Difficulty } from '~/composables/useSudoku'
 
 const {
-  difficulty, board, noteMode, cellNotes, gameWon,
-  difficultyLabels, startGame, formattedTime, completedDigits,
-  selectCell, inputNumber, getCellClass, handleKey,
+  difficulty,
+  board,
+  noteMode,
+  cellNotes,
+  gameWon,
+  difficultyLabels,
+  startGame,
+  formattedTime,
+  completedDigits,
+  selectCell,
+  inputNumber,
+  getCellClass,
+  handleKey,
 } = useSudoku()
 
 onMounted(() => startGame())
@@ -25,7 +35,9 @@ defineExpose({ handleKey })
             :key="key"
             :class="['diff-btn', difficulty === key ? 'diff-btn--active' : '']"
             @click="startGame(key as Difficulty)"
-          >{{ label }}</button>
+          >
+            {{ label }}
+          </button>
         </div>
       </div>
     </div>
@@ -50,7 +62,9 @@ defineExpose({ handleKey })
           >
             <template v-if="val !== 0">{{ val }}</template>
             <div v-else-if="cellNotes[r][c].size > 0" class="notes-grid">
-              <span v-for="n in 9" :key="n" class="note">{{ cellNotes[r][c].has(n) ? n : '' }}</span>
+              <span v-for="n in 9" :key="n" class="note">{{
+                cellNotes[r][c].has(n) ? n : ''
+              }}</span>
             </div>
           </div>
         </template>
@@ -65,7 +79,9 @@ defineExpose({ handleKey })
           :class="['num-btn', completedDigits.has(n) ? 'num-btn--completed' : '']"
           :disabled="completedDigits.has(n)"
           @click="inputNumber(n)"
-        >{{ n }}</button>
+        >
+          {{ n }}
+        </button>
         <button class="num-btn num-btn--erase" @click="inputNumber(0)" title="Стереть">✕</button>
       </div>
       <div class="action-row">
@@ -137,9 +153,17 @@ defineExpose({ handleKey })
   opacity: 0.6;
   transition: all 0.15s;
 }
-.diff-btn:last-child { border-right: none; }
-.diff-btn:hover { opacity: 1; }
-.diff-btn--active { background: var(--color-text); color: var(--color-bg); opacity: 1; }
+.diff-btn:last-child {
+  border-right: none;
+}
+.diff-btn:hover {
+  opacity: 1;
+}
+.diff-btn--active {
+  background: var(--color-text);
+  color: var(--color-bg);
+  opacity: 1;
+}
 
 /* Board */
 .board-wrap {
@@ -169,13 +193,29 @@ defineExpose({ handleKey })
   transition: background 0.1s;
   position: relative;
 }
-.cell--given { font-weight: 700; opacity: 0.95; }
-.cell--selected { background: var(--color-text) !important; color: var(--color-bg) !important; }
-.cell--highlight { background: color-mix(in srgb, var(--color-text) 8%, transparent); }
-.cell--same { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
-.cell--error { color: #e53e3e !important; }
-.cell--border-right { border-right: 2px solid var(--color-text); }
-.cell--border-bottom { border-bottom: 2px solid var(--color-text); }
+.cell--given {
+  font-weight: 700;
+  opacity: 0.95;
+}
+.cell--selected {
+  background: var(--color-text) !important;
+  color: var(--color-bg) !important;
+}
+.cell--highlight {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+.cell--same {
+  background: color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+.cell--error {
+  color: #e53e3e !important;
+}
+.cell--border-right {
+  border-right: 2px solid var(--color-text);
+}
+.cell--border-bottom {
+  border-bottom: 2px solid var(--color-text);
+}
 
 .notes-grid {
   display: grid;
@@ -206,9 +246,20 @@ defineExpose({ handleKey })
   z-index: 10;
   border-radius: 6px;
 }
-.win-box { text-align: center; padding: 2rem; }
-.win-icon { font-size: 3rem; line-height: 1; margin-bottom: 0.5rem; }
-.win-text { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+.win-box {
+  text-align: center;
+  padding: 2rem;
+}
+.win-icon {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.win-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
 .win-time {
   font-size: 2rem;
   font-variant-numeric: tabular-nums;
@@ -227,7 +278,9 @@ defineExpose({ handleKey })
   font-weight: 600;
   transition: opacity 0.15s;
 }
-.win-btn:hover { opacity: 0.8; }
+.win-btn:hover {
+  opacity: 0.8;
+}
 
 /* Controls */
 .controls {
@@ -251,14 +304,31 @@ defineExpose({ handleKey })
   font-weight: 600;
   cursor: pointer;
   color: var(--color-text);
-  transition: background 0.1s, transform 0.08s, opacity 0.2s;
+  transition:
+    background 0.1s,
+    transform 0.08s,
+    opacity 0.2s;
 }
-.num-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-text) 10%, transparent); }
-.num-btn:active:not(:disabled) { transform: scale(0.93); }
-.num-btn--erase { font-size: 0.85rem; opacity: 0.6; }
-.num-btn--completed { opacity: 0.2; cursor: not-allowed; border-style: dashed; }
+.num-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+.num-btn:active:not(:disabled) {
+  transform: scale(0.93);
+}
+.num-btn--erase {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+.num-btn--completed {
+  opacity: 0.2;
+  cursor: not-allowed;
+  border-style: dashed;
+}
 
-.action-row { display: flex; gap: 0.5rem; }
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+}
 .action-btn {
   display: flex;
   align-items: center;
@@ -271,11 +341,21 @@ defineExpose({ handleKey })
   cursor: pointer;
   color: var(--color-text);
   opacity: 0.7;
-  transition: opacity 0.15s, background 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
 }
-.action-btn:hover { opacity: 1; }
-.action-btn--active { background: var(--color-text); color: var(--color-bg); opacity: 1; }
-.action-icon { font-size: 1rem; }
+.action-btn:hover {
+  opacity: 1;
+}
+.action-btn--active {
+  background: var(--color-text);
+  color: var(--color-bg);
+  opacity: 1;
+}
+.action-icon {
+  font-size: 1rem;
+}
 .action-kbd {
   font-family: inherit;
   font-size: 0.7rem;
