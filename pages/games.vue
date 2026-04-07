@@ -4,13 +4,17 @@ import { ref } from 'vue'
 import SudokuGame from '../components/games/SudokuGame.vue'
 import Game2048 from '../components/games/Game2048.vue'
 import { useRoute, useRouter } from 'vue-router'
-import { onMounted, watch } from 'vue'
+import { onMounted } from 'vue'
 
 type GameType = 'sudoku' | '2048'
 
 const activeGame = ref<GameType>('sudoku')
-const sudokuRef = ref<InstanceType<typeof import('~/components/games/SudokuGame.vue').default> | null>(null)
-const game2048Ref = ref<InstanceType<typeof import('~/components/games/Game2048.vue').default> | null>(null)
+const sudokuRef = ref<InstanceType<
+  typeof import('~/components/games/SudokuGame.vue').default
+> | null>(null)
+const game2048Ref = ref<InstanceType<
+  typeof import('~/components/games/Game2048.vue').default
+> | null>(null)
 
 function handleKey(e: KeyboardEvent) {
   if (activeGame.value === '2048') game2048Ref.value?.handleKey(e)
@@ -51,12 +55,16 @@ useSeoMeta({
       <button
         :class="['game-tab', activeGame === 'sudoku' ? 'game-tab--active' : '']"
         @click="setGame('sudoku')"
-      >数独 Судоку</button>
+      >
+        数独 Судоку
+      </button>
 
       <button
         :class="['game-tab', activeGame === '2048' ? 'game-tab--active' : '']"
         @click="setGame('2048')"
-      >2048</button>
+      >
+        2048
+      </button>
     </div>
 
     <SudokuGame v-if="activeGame === 'sudoku'" ref="sudokuRef" />
@@ -65,13 +73,29 @@ useSeoMeta({
 </template>
 
 <style scoped>
-.games-page { outline: none; }
+.games-page {
+  outline: none;
+}
 
-.page-header { margin-bottom: 1.5rem; }
-.page-title { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem; }
-.page-sub { margin: 0; opacity: 0.55; font-size: 0.9rem; }
+.page-header {
+  margin-bottom: 1.5rem;
+}
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+.page-sub {
+  margin: 0;
+  opacity: 0.55;
+  font-size: 0.9rem;
+}
 
-.game-selector { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+.game-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
 .game-tab {
   background: none;
   border: 1px solid var(--color-border);
@@ -84,8 +108,15 @@ useSeoMeta({
   opacity: 0.55;
   transition: all 0.15s;
 }
-.game-tab:hover { opacity: 0.85; }
-.game-tab--active { background: var(--color-text); color: var(--color-bg); opacity: 1; border-color: var(--color-text); }
+.game-tab:hover {
+  opacity: 0.85;
+}
+.game-tab--active {
+  background: var(--color-text);
+  color: var(--color-bg);
+  opacity: 1;
+  border-color: var(--color-text);
+}
 
 .game-card {
   border: 1px solid var(--color-border);

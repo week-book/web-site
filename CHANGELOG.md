@@ -10,6 +10,7 @@
 ## [Unreleased]
 
 ### Added
+
 - `CHANGELOG.md` — этот файл
 
 ---
@@ -19,6 +20,7 @@
 Полная миграция с SPA (Vue 3 + Vite) на SSR (Nuxt 3).
 
 ### Added
+
 - Server-Side Rendering через Nuxt 3 + Nitro — страницы постов теперь отдают готовый HTML
 - Мета-теги для SEO на всех страницах через `useSeoMeta`: `title`, `description`, `ogTitle`, `ogDescription`
 - Глобальный `titleTemplate` в `app.vue` — автоматически добавляет `— Week-book` к заголовку каждой страницы
@@ -26,6 +28,7 @@
 - `lang="ru"` на `<html>` через `useHead`
 
 ### Changed
+
 - Фреймворк: Vue 3 + Vite → Nuxt 3
 - Деплой: Nginx (статика) → Node.js + Nitro (SSR-сервер), порт `3000`
 - Загрузка данных: `onMounted + fetch` → `useFetch` с серверным рендерингом
@@ -34,11 +37,13 @@
 - Dockerfile: двухэтапная сборка Node → Nginx заменена на Node → Node
 
 ### Fixed
+
 - `localStorage` в `stores/ui.ts` теперь вызывается только на клиенте через `import.meta.client`
 - `setInterval` в `pages/games.vue` перенесён в `onMounted` — устранён SSR-краш с кодом 500
 - Страница `/games` переведена в `client-only` режим через `definePageMeta({ ssr: false })`
 
 ### Removed
+
 - `src/router/index.ts` — роутинг теперь файловый
 - `src/main.ts` и `index.html` — точка входа управляется Nuxt
 - `src/stores/counter.ts` — не использовался

@@ -27,9 +27,7 @@ export function use2048() {
 
   function emptyCells(b: Board2048): [number, number][] {
     const cells: [number, number][] = []
-    for (let r = 0; r < 4; r++)
-      for (let c = 0; c < 4; c++)
-        if (b[r][c] === 0) cells.push([r, c])
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (b[r][c] === 0) cells.push([r, c])
     return cells
   }
 
@@ -52,7 +50,7 @@ export function use2048() {
   }
 
   function slideRow(row: number[]): [number[], number] {
-    const nums = row.filter(v => v !== 0)
+    const nums = row.filter((v) => v !== 0)
     let rowScore = 0
     const merged: number[] = []
     let i = 0
@@ -74,16 +72,16 @@ export function use2048() {
     if (over.value) return
     if (won.value && !wonAcked.value) return
 
-    let b = board.value.map(r => [...r])
+    let b = board.value.map((r) => [...r])
     let totalScore = 0
     let moved = false
 
-    const transpose = (m: number[][]) => m[0].map((_, i) => m.map(r => r[i]))
-    const reverseRows = (m: number[][]) => m.map(r => [...r].reverse())
+    const transpose = (m: number[][]) => m[0].map((_, i) => m.map((r) => r[i]))
+    const reverseRows = (m: number[][]) => m.map((r) => [...r].reverse())
 
     function processLeft(m: number[][]): [number[][], boolean] {
       let changed = false
-      const result = m.map(row => {
+      const result = m.map((row) => {
         const [newRow, s] = slideRow(row)
         totalScore += s
         if (newRow.some((v, i) => v !== row[i])) changed = true
@@ -93,15 +91,15 @@ export function use2048() {
     }
 
     if (dir === 'left') {
-      [b, moved] = processLeft(b)
+      ;[b, moved] = processLeft(b)
     } else if (dir === 'right') {
-      [b, moved] = processLeft(reverseRows(b))
+      ;[b, moved] = processLeft(reverseRows(b))
       b = reverseRows(b)
     } else if (dir === 'up') {
-      [b, moved] = processLeft(transpose(b))
+      ;[b, moved] = processLeft(transpose(b))
       b = transpose(b)
     } else {
-      [b, moved] = processLeft(reverseRows(transpose(b)))
+      ;[b, moved] = processLeft(reverseRows(transpose(b)))
       b = transpose(reverseRows(b))
     }
 
@@ -113,15 +111,20 @@ export function use2048() {
     addTile(b)
     board.value = b
 
-    if (!won.value && b.some(r => r.some(v => v === 2048))) won.value = true
+    if (!won.value && b.some((r) => r.some((v) => v === 2048))) won.value = true
 
     if (emptyCells(b).length === 0) {
       let canMove = false
-      outer:
-      for (let r = 0; r < 4; r++) {
+      outer: for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 4; c++) {
-          if (c < 3 && b[r][c] === b[r][c + 1]) { canMove = true; break outer }
-          if (r < 3 && b[r][c] === b[r + 1][c]) { canMove = true; break outer }
+          if (c < 3 && b[r][c] === b[r][c + 1]) {
+            canMove = true
+            break outer
+          }
+          if (r < 3 && b[r][c] === b[r + 1][c]) {
+            canMove = true
+            break outer
+          }
         }
       }
       if (!canMove) over.value = true
@@ -140,7 +143,7 @@ export function use2048() {
     const dx = e.changedTouches[0].clientX - touchStartX
     const dy = e.changedTouches[0].clientY - touchStartY
     if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return
-    move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'))
+    move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up')
   }
 
   function tileStyle(val: number): Record<string, string> {
@@ -156,13 +159,30 @@ export function use2048() {
 
   function handleKey(e: KeyboardEvent) {
     const map: Record<string, Direction> = {
-      ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+      ArrowLeft: 'left',
+      ArrowRight: 'right',
+      ArrowUp: 'up',
+      ArrowDown: 'down',
     }
-    if (map[e.key]) { e.preventDefault(); move(map[e.key]) }
+    if (map[e.key]) {
+      e.preventDefault()
+      move(map[e.key])
+    }
   }
 
   return {
-    board, score, best, won, over, wonAcked,
-    startGame, move, onTouchStart, onTouchEnd, tileStyle, tileFontSize, handleKey,
+    board,
+    score,
+    best,
+    won,
+    over,
+    wonAcked,
+    startGame,
+    move,
+    onTouchStart,
+    onTouchEnd,
+    tileStyle,
+    tileFontSize,
+    handleKey,
   }
 }

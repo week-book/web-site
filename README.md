@@ -8,17 +8,17 @@
 
 ## Стек
 
-| Слой | Технология |
-|---|---|
-| Фреймворк | Nuxt 3 + TypeScript |
-| Рендеринг | SSR (Server-Side Rendering) |
-| Сборка | Vite + Nitro |
-| Роутинг | Nuxt File-based routing |
-| Стейт | Pinia |
-| Рендер постов | marked (Markdown → HTML) |
+| Слой               | Технология                   |
+| ------------------ | ---------------------------- |
+| Фреймворк          | Nuxt 3 + TypeScript          |
+| Рендеринг          | SSR (Server-Side Rendering)  |
+| Сборка             | Vite + Nitro                 |
+| Роутинг            | Nuxt File-based routing      |
+| Стейт              | Pinia                        |
+| Рендер постов      | marked (Markdown → HTML)     |
 | Хранилище контента | MinIO S3 (`s3.week-book.ru`) |
-| Деплой | Docker + Node.js |
-| Линтер / форматер | ESLint + oxlint + Prettier |
+| Деплой             | Docker + Node.js             |
+| Линтер / форматер  | ESLint + oxlint + Prettier   |
 
 ---
 
@@ -55,12 +55,12 @@ s3.week-book.ru/posts/
 
 ## Страницы
 
-| Маршрут | Описание | SSR |
-|---|---|---|
-| `/` | Лента постов | ✅ |
-| `/posts/:slug` | Отдельный пост | ✅ |
-| `/about` | О себе | ✅ |
-| `/games` | Судоку и 2048 | ❌ client-only |
+| Маршрут        | Описание       | SSR            |
+| -------------- | -------------- | -------------- |
+| `/`            | Лента постов   | ✅             |
+| `/posts/:slug` | Отдельный пост | ✅             |
+| `/about`       | О себе         | ✅             |
+| `/games`       | Судоку и 2048  | ❌ client-only |
 
 ---
 

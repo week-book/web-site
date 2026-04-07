@@ -11,8 +11,7 @@ function isValidPlacement(b: number[][], row: number, col: number, num: number):
   const br = Math.floor(row / 3) * 3
   const bc = Math.floor(col / 3) * 3
   for (let r = br; r < br + 3; r++)
-    for (let c = bc; c < bc + 3; c++)
-      if (b[r][c] === num) return false
+    for (let c = bc; c < bc + 3; c++) if (b[r][c] === num) return false
   return true
 }
 
@@ -62,9 +61,9 @@ function countSolutions(b: number[][], limit = 2): number {
 
 const CLUES: Record<string, number> = { easy: 46, medium: 33, hard: 26 }
 
-function generatePuzzle(difficulty: string): { puzzle: number[][], solution: number[][] } {
+function generatePuzzle(difficulty: string): { puzzle: number[][]; solution: number[][] } {
   const solution = generateSolvedBoard()
-  const puzzle = solution.map(r => [...r])
+  const puzzle = solution.map((r) => [...r])
   const clues = CLUES[difficulty] ?? 33
   const toRemove = 81 - clues
   const allCells = Array.from({ length: 81 }, (_, i) => i).sort(() => Math.random() - 0.5)
@@ -74,10 +73,15 @@ function generatePuzzle(difficulty: string): { puzzle: number[][], solution: num
   for (const idx of allCells) {
     if (removed >= toRemove) break
     if (tried.has(idx)) continue
-    const r1 = Math.floor(idx / 9), c1 = idx % 9
-    const r2 = 8 - r1, c2 = 8 - c1
+    const r1 = Math.floor(idx / 9),
+      c1 = idx % 9
+    const r2 = 8 - r1,
+      c2 = 8 - c1
     const idx2 = r2 * 9 + c2
-    if (puzzle[r1][c1] === 0) { tried.add(idx); continue }
+    if (puzzle[r1][c1] === 0) {
+      tried.add(idx)
+      continue
+    }
     const v1 = puzzle[r1][c1]
     puzzle[r1][c1] = 0
     tried.add(idx)
@@ -97,11 +101,12 @@ function generatePuzzle(difficulty: string): { puzzle: number[][], solution: num
 
   if (removed < toRemove) {
     const remaining = Array.from({ length: 81 }, (_, i) => i)
-      .filter(i => puzzle[Math.floor(i / 9)][i % 9] !== 0)
+      .filter((i) => puzzle[Math.floor(i / 9)][i % 9] !== 0)
       .sort(() => Math.random() - 0.5)
     for (const idx of remaining) {
       if (removed >= toRemove) break
-      const r = Math.floor(idx / 9), c = idx % 9
+      const r = Math.floor(idx / 9),
+        c = idx % 9
       const v = puzzle[r][c]
       puzzle[r][c] = 0
       if (countSolutions(puzzle) === 1) removed++
@@ -136,9 +141,9 @@ export function useSudoku() {
   function startGame(diff?: Difficulty) {
     if (diff) difficulty.value = diff
     const { puzzle, solution: sol } = generatePuzzle(difficulty.value)
-    board.value = puzzle.map(r => [...r])
+    board.value = puzzle.map((r) => [...r])
     solution.value = sol
-    given.value = puzzle.map(r => r.map(v => v !== 0))
+    given.value = puzzle.map((r) => r.map((v) => v !== 0))
     errors.value = new Set()
     selected.value = null
     gameWon.value = false
@@ -148,14 +153,20 @@ export function useSudoku() {
     seconds.value = 0
     if (timer) clearInterval(timer)
     if (import.meta.client) {
-      timer = setInterval(() => { if (!gameWon.value) seconds.value++ }, 1000)
+      timer = setInterval(() => {
+        if (!gameWon.value) seconds.value++
+      }, 1000)
     }
   }
 
-  onUnmounted(() => { if (timer) clearInterval(timer) })
+  onUnmounted(() => {
+    if (timer) clearInterval(timer)
+  })
 
   const formattedTime = computed(() => {
-    const m = Math.floor(seconds.value / 60).toString().padStart(2, '0')
+    const m = Math.floor(seconds.value / 60)
+      .toString()
+      .padStart(2, '0')
     const s = (seconds.value % 60).toString().padStart(2, '0')
     return `${m}:${s}`
   })
@@ -180,8 +191,7 @@ export function useSudoku() {
     const br = Math.floor(r / 3) * 3
     const bc = Math.floor(c / 3) * 3
     for (let rr = br; rr < br + 3; rr++)
-      for (let cc = bc; cc < bc + 3; cc++)
-        cellNotes.value[rr][cc].delete(num)
+      for (let cc = bc; cc < bc + 3; cc++) cellNotes.value[rr][cc].delete(num)
   }
 
   function selectCell(r: number, c: number) {
@@ -191,8 +201,7 @@ export function useSudoku() {
 
   function checkWin() {
     for (let r = 0; r < 9; r++)
-      for (let c = 0; c < 9; c++)
-        if (board.value[r][c] !== solution.value[r][c]) return
+      for (let c = 0; c < 9; c++) if (board.value[r][c] !== solution.value[r][c]) return
     gameWon.value = true
     if (timer) clearInterval(timer)
   }
@@ -203,8 +212,12 @@ export function useSudoku() {
     if (given.value[r][c]) return
     if (noteMode.value) {
       const notes = cellNotes.value[r][c]
-      if (num === 0) { notes.clear(); return }
-      notes.has(num) ? notes.delete(num) : notes.add(num)
+      if (num === 0) {
+        notes.clear()
+        return
+      }
+      if (notes.has(num)) notes.delete(num)
+      else notes.add(num)
       return
     }
     board.value[r][c] = num
@@ -256,9 +269,23 @@ export function useSudoku() {
   }
 
   return {
-    difficulty, board, given, solution, selected, errors,
-    noteMode, cellNotes, gameWon, seconds,
-    difficultyLabels, startGame, formattedTime, completedDigits,
-    selectCell, inputNumber, getCellClass, handleKey,
+    difficulty,
+    board,
+    given,
+    solution,
+    selected,
+    errors,
+    noteMode,
+    cellNotes,
+    gameWon,
+    seconds,
+    difficultyLabels,
+    startGame,
+    formattedTime,
+    completedDigits,
+    selectCell,
+    inputNumber,
+    getCellClass,
+    handleKey,
   }
 }
