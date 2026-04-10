@@ -25,7 +25,7 @@ export default defineNuxtConfig({
     manifest: {
       name: 'week-book',
       short_name: 'week-book',
-      start_url: '/games',
+      start_url: '/',
       display: 'standalone',
       background_color: '#ffffff',
       theme_color: '#ffffff',
