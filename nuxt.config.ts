@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  modules: ['@pinia/nuxt', '@nuxtjs/sitemap'],
+  modules: ['@pinia/nuxt', '@nuxtjs/sitemap', '@vite-pwa/nuxt'],
   ssr: true,
   runtimeConfig: {
     public: {
@@ -20,4 +20,41 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'week-book',
+      short_name: 'week-book',
+      start_url: '/games',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#ffffff',
+      icons: [
+        { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/week-book\.ru\/games/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'games-page',
+            expiration: { maxAgeSeconds: 60 * 60 * 24 * 30 },
+          },
+        },
+        {
+          urlPattern: /^https:\/\/s3\.week-book\.ru\/posts/,
+          handler: 'StaleWhileRevalidate',
+          options: {
+            cacheName: 's3-posts',
+            expiration: { maxAgeSeconds: 60 * 60 * 24 },
+          },
+        },
+      ],
+    },
+  },
 })
