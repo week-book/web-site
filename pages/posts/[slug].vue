@@ -17,8 +17,13 @@ const { data: markdown } = await useFetch<string>(
   { watch: [summary] },
 )
 
+function stripFrontmatter(md: string): string {
+  return md.replace(/^---[\s\S]*?---\n?/, '')
+}
+
 const { marked } = await import('marked')
-const html = computed(() => (markdown.value ? marked(markdown.value) : ''))
+
+const html = computed(() => (markdown.value ? marked(stripFrontmatter(markdown.value)) : ''))
 
 const loading = computed(() => !posts.value && !postsError.value)
 const error = computed(() => (postsError.value ? 'Не удалось загрузить пост.' : null))
