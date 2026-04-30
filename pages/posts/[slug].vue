@@ -29,6 +29,23 @@ const loading = computed(() => !posts.value && !postsError.value)
 const error = computed(() => (postsError.value ? 'Не удалось загрузить пост.' : null))
 const post = computed(() => (summary.value ? { ...summary.value, html: html.value } : null))
 
+let touchStartX = 0
+let touchStartY = 0
+
+function onTouchStart(e: TouchEvent) {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+}
+
+function onTouchEnd(e: TouchEvent) {
+  const dx = e.changedTouches[0].clientX - touchStartX
+  const dy = e.changedTouches[0].clientY - touchStartY
+  // свайп вправо, горизонтальный (не вертикальный скролл)
+  if (dx > 70 && Math.abs(dy) < 50) {
+    navigateTo('/')
+  }
+}
+
 useSeoMeta({
   title: () => (post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book'),
   description: () => post.value?.meta.excerpt ?? '',
@@ -41,7 +58,7 @@ useSeoMeta({
   <p v-if="loading">Загрузка...</p>
   <p v-else-if="error">{{ error }}</p>
   <p v-else-if="!post">Пост не найден.</p>
-  <article class="post" v-else>
+  <article class="post" v-else @touchstart="onTouchStart" @touchend="onTouchEnd">
     <h1>{{ post.meta.title }}</h1>
     <div class="meta">{{ post.meta.date }}</div>
     <div v-html="post.html"></div>
