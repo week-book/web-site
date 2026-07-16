@@ -1,20 +1,21 @@
 <script setup lang="ts">
-import type PostSummary from '../types/post.ts'
+import type { ApiPost } from '../../types/apiPost'
 
 const route = useRoute()
 const config = useRuntimeConfig()
+const slug = computed(() => String(route.params.slug))
 
-const { data: posts, error: postsError } = await useFetch<PostSummary[]>(
-  `${config.public.postsBaseUrl}/index.json`,
+// Метаданные — через серверный прокси к posts-api.
+const { data: post, error: postError } = await useFetch<ApiPost>(
+  () => `/api/posts/${slug.value}`,
 )
 
-const summary = computed(
-  () => posts.value?.find((p: PostSummary) => p.slug === route.params.slug) ?? null,
-)
-
-const { data: markdown } = await useFetch<string>(
-  () => (summary.value ? `${config.public.postsBaseUrl}/${summary.value.filename}` : null),
-  { watch: [summary] },
+// Тело поста по-прежнему живёт только в MinIO — posts-api его не отдаёт
+// (осознанное разделение, см. api-architecture.md: API не касается контента,
+// только метаданных). filename берём из ответа API, а не из index.json.
+const { data: markdown, error: markdownError } = await useFetch<string>(
+  () => (post.value ? `${config.public.postsBaseUrl}/${post.value.filename}` : null),
+  { watch: [post] },
 )
 
 function stripFrontmatter(md: string): string {
@@ -25,9 +26,15 @@ const { marked } = await import('marked')
 
 const html = computed(() => (markdown.value ? marked(stripFrontmatter(markdown.value)) : ''))
 
-const loading = computed(() => !posts.value && !postsError.value)
-const error = computed(() => (postsError.value ? 'Не удалось загрузить пост.' : null))
-const post = computed(() => (summary.value ? { ...summary.value, html: html.value } : null))
+const notFound = computed(() => postError.value?.statusCode === 404)
+const loading = computed(() => !post.value && !postError.value)
+const error = computed(() =>
+  postError.value && !notFound.value
+    ? 'Не удалось загрузить пост.'
+    : markdownError.value
+      ? 'Не удалось загрузить текст поста.'
+      : null,
+)
 
 let touchStartX = 0
 let touchStartY = 0
@@ -47,21 +54,22 @@ function onTouchEnd(e: TouchEvent) {
 }
 
 useSeoMeta({
-  title: () => (post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book'),
-  description: () => post.value?.meta.excerpt ?? '',
-  ogTitle: () => (post.value?.meta.title ? `${post.value.meta.title} — Week-book` : 'Week-book'),
-  ogDescription: () => post.value?.meta.excerpt ?? '',
+  title: () => (post.value?.title ? `${post.value.title} — Week-book` : 'Week-book'),
+  description: () => post.value?.excerpt ?? '',
+  ogTitle: () => (post.value?.title ? `${post.value.title} — Week-book` : 'Week-book'),
+  ogDescription: () => post.value?.excerpt ?? '',
 })
 </script>
 
 <template>
   <p v-if="loading">Загрузка...</p>
+  <p v-else-if="notFound">Пост не найден.</p>
   <p v-else-if="error">{{ error }}</p>
   <p v-else-if="!post">Пост не найден.</p>
   <article class="post" v-else @touchstart="onTouchStart" @touchend="onTouchEnd">
-    <h1>{{ post.meta.title }}</h1>
-    <div class="meta">{{ post.meta.date }}</div>
-    <div v-html="post.html"></div>
+    <h1>{{ post.title }}</h1>
+    <div class="meta">{{ post.date }}</div>
+    <div v-html="html"></div>
   </article>
 </template>
 
