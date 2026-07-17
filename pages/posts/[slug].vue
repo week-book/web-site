@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ApiPost } from '../../types/apiPost'
+import type { ApiPost, ApiRelatedResponse } from '../../types/apiPost'
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -11,6 +11,30 @@ const { data: markdown, error: markdownError } = await useFetch<string>(
   () => (post.value ? `${config.public.postsBaseUrl}/${post.value.filename}` : null),
   { watch: [post] },
 )
+
+// related для виджета после поста — забираем вместе с остальными данными
+// на этапе SSR, не отдельным client-only запросом после гидрации (чтобы
+// блок не "прыгал"). Ошибка/сеть не должна ломать рендер самого поста —
+// проглатываем по аналогии со счётчиком просмотров ниже.
+const { data: relatedRaw } = await useFetch<ApiRelatedResponse>(
+  () => (post.value ? `/api/posts/${slug.value}/related` : null),
+  { watch: [post] },
+)
+
+const related = computed(() => {
+  const raw = relatedRaw.value
+  if (!raw) return []
+  return Array.isArray(raw) ? raw : (raw.posts ?? [])
+})
+
+const shareUrl = computed(() => {
+  if (post.value?.short_id) {
+    return `${config.public.redirectBaseUrl}/${post.value.short_id}`
+  }
+  return `${config.public.siteBaseUrl}/posts/${slug.value}`
+})
+
+const shareDisplayUrl = computed(() => shareUrl.value.replace(/^https?:\/\//, ''))
 
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n?/, '')
@@ -112,6 +136,12 @@ useSeoMeta({
       </span>
     </div>
     <div v-html="html"></div>
+    <PostWidget
+      :share-url="shareUrl"
+      :share-display-url="shareDisplayUrl"
+      :share-title="post.title"
+      :related="related"
+    />
   </article>
 </template>
 
