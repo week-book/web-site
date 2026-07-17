@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
+    "@weeekbook/games": "^0.1.0",
     "marked": "^17.0.5",
     "nuxt": "^4.4.2",
     "pinia": "^3.0.4",
