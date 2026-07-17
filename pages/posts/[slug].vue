@@ -36,10 +36,7 @@ const { data: firstRelatedRaw } = await useFetch<ApiRelatedResponse>(
   { query: { limit: 10 }, watch: [firstPost] },
 )
 
-function extractRelated(raw: ApiRelatedResponse | null | undefined): ApiPost[] {
-  if (!raw) return []
-  return Array.isArray(raw) ? raw : (raw.posts ?? [])
-}
+const { marked } = await import('marked')
 
 const notFound = computed(() => postError.value?.statusCode === 404)
 const loading = computed(() => !firstPost.value && !postError.value)
