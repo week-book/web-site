@@ -2,15 +2,12 @@ export default defineNuxtConfig({
   modules: ['@pinia/nuxt', '@nuxtjs/sitemap', '@vite-pwa/nuxt'],
   ssr: true,
   runtimeConfig: {
-    // Серверные значения — НЕ попадают в клиентский бандл.
-    // Переопределяются через env: NUXT_POSTS_API_URL, NUXT_POSTS_API_KEY.
     postsApiUrl: 'https://api.week-book.ru',
     postsApiKey: '',
     public: {
-      // Тело поста (.md) по-прежнему только на S3 — posts-api метаданные
-      // отдаёт, контент нет (см. api-architecture.md). Используется теперь
-      // только в pages/posts/[slug].vue по filename из ответа API.
       postsBaseUrl: 'https://s3.week-book.ru/posts',
+      siteBaseUrl: 'https://week-book.ru',
+      redirectBaseUrl: 'https://go.week-book.ru',
     },
   },
   sitemap: {

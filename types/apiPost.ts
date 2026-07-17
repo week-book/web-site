@@ -19,3 +19,5 @@ export interface ApiPostList {
   offset: number
   total: number
 }
+
+export type ApiRelatedResponse = ApiPost[] | { posts: ApiPost[] }
