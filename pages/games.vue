@@ -1,20 +1,15 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false })
 import { ref } from 'vue'
-import SudokuGame from '../components/games/SudokuGame.vue'
-import Game2048 from '../components/games/Game2048.vue'
+import { SudokuGame, Game2048 } from '@weeekbook/games'
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted } from 'vue'
 
 type GameType = 'sudoku' | '2048'
 
 const activeGame = ref<GameType>('sudoku')
-const sudokuRef = ref<InstanceType<
-  typeof import('~/components/games/SudokuGame.vue').default
-> | null>(null)
-const game2048Ref = ref<InstanceType<
-  typeof import('~/components/games/Game2048.vue').default
-> | null>(null)
+const sudokuRef = ref<InstanceType<typeof SudokuGame> | null>(null)
+const game2048Ref = ref<InstanceType<typeof Game2048> | null>(null)
 
 function handleKey(e: KeyboardEvent) {
   if (activeGame.value === '2048') game2048Ref.value?.handleKey(e)
