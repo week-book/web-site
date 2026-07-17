@@ -9,30 +9,6 @@ interface LoadedPost {
   viewCounted: boolean
 }
 
-// related для виджета после поста — забираем вместе с остальными данными
-// на этапе SSR, не отдельным client-only запросом после гидрации (чтобы
-// блок не "прыгал"). Ошибка/сеть не должна ломать рендер самого поста —
-// проглатываем по аналогии со счётчиком просмотров ниже.
-const { data: relatedRaw } = await useFetch<ApiRelatedResponse>(
-  () => (post.value ? `/api/posts/${slug.value}/related` : null),
-  { watch: [post] },
-)
-
-const related = computed(() => {
-  const raw = relatedRaw.value
-  if (!raw) return []
-  return Array.isArray(raw) ? raw : (raw.posts ?? [])
-})
-
-const shareUrl = computed(() => {
-  if (post.value?.short_id) {
-    return `${config.public.redirectBaseUrl}/${post.value.short_id}`
-  }
-  return `${config.public.siteBaseUrl}/posts/${slug.value}`
-})
-
-const shareDisplayUrl = computed(() => shareUrl.value.replace(/^https?:\/\//, ''))
-
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n?/, '')
 }
@@ -60,7 +36,10 @@ const { data: firstRelatedRaw } = await useFetch<ApiRelatedResponse>(
   { query: { limit: 10 }, watch: [firstPost] },
 )
 
-const { marked } = await import('marked')
+function extractRelated(raw: ApiRelatedResponse | null | undefined): ApiPost[] {
+  if (!raw) return []
+  return Array.isArray(raw) ? raw : (raw.posts ?? [])
+}
 
 const notFound = computed(() => postError.value?.statusCode === 404)
 const loading = computed(() => !firstPost.value && !postError.value)
