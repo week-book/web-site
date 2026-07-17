@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import type { ApiPost, ApiRelatedResponse } from '../../types/apiPost'
 
-const route = useRoute()
-const config = useRuntimeConfig()
-const slug = computed(() => String(route.params.slug))
-
-const { data: post, error: postError } = await useFetch<ApiPost>(() => `/api/posts/${slug.value}`)
-
-const { data: markdown, error: markdownError } = await useFetch<string>(
-  () => (post.value ? `${config.public.postsBaseUrl}/${post.value.filename}` : null),
-  { watch: [post] },
-)
+interface LoadedPost {
+  slug: string
+  post: ApiPost
+  html: string
+  related: ApiPost[]
+  viewCounted: boolean
+}
 
 // related для виджета после поста — забираем вместе с остальными данными
 // на этапе SSR, не отдельным client-only запросом после гидрации (чтобы
@@ -40,12 +37,33 @@ function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n?/, '')
 }
 
+function extractRelated(raw: ApiRelatedResponse | null | undefined): ApiPost[] {
+  if (!raw) return []
+  return Array.isArray(raw) ? raw : (raw.posts ?? [])
+}
+
+const route = useRoute()
+const config = useRuntimeConfig()
+const initialSlug = String(route.params.slug)
+
+// Первый пост — как и раньше, SSR useFetch (SEO, og-теги, прямые переходы
+// по /posts/:slug должны работать независимо от бесшовного режима).
+const { data: firstPost, error: postError } = await useFetch<ApiPost>(
+  () => `/api/posts/${initialSlug}`,
+)
+const { data: firstMarkdown, error: markdownError } = await useFetch<string>(
+  () => (firstPost.value ? `${config.public.postsBaseUrl}/${firstPost.value.filename}` : null),
+  { watch: [firstPost] },
+)
+const { data: firstRelatedRaw } = await useFetch<ApiRelatedResponse>(
+  () => (firstPost.value ? `/api/posts/${initialSlug}/related` : null),
+  { query: { limit: 10 }, watch: [firstPost] },
+)
+
 const { marked } = await import('marked')
 
-const html = computed(() => (markdown.value ? marked(stripFrontmatter(markdown.value)) : ''))
-
 const notFound = computed(() => postError.value?.statusCode === 404)
-const loading = computed(() => !post.value && !postError.value)
+const loading = computed(() => !firstPost.value && !postError.value)
 const error = computed(() =>
   postError.value && !notFound.value
     ? 'Не удалось загрузить пост.'
@@ -54,34 +72,154 @@ const error = computed(() =>
       : null,
 )
 
-// Счётчик просмотров: считаем один раз за монтирование страницы поста,
-// dedup по TTL (18ч) — на стороне posts-api, см. api.md.
-const displayedViews = ref<number | null>(null)
+const {
+  sessionLimitReached,
+  celebrationShown,
+  markVisited,
+  findNextSlug,
+} = useNextPost()
+
+const loadedPosts = ref<LoadedPost[]>([])
+const loadingNext = ref(false)
+const feedExhausted = ref(false)
 
 watch(
-  post,
+  firstPost,
   (value) => {
-    if (value) displayedViews.value = value.views
+    if (!value || loadedPosts.value.length) return
+    loadedPosts.value = [
+      {
+        slug: initialSlug,
+        post: value,
+        html: firstMarkdown.value ? (marked(stripFrontmatter(firstMarkdown.value)) as string) : '',
+        related: extractRelated(firstRelatedRaw.value),
+        viewCounted: false,
+      },
+    ]
+    markVisited(initialSlug)
   },
   { immediate: true },
 )
 
-onMounted(async () => {
-  if (!post.value) return
+async function appendNextPost() {
+  if (loadingNext.value || feedExhausted.value || sessionLimitReached.value) return
+  const last = loadedPosts.value[loadedPosts.value.length - 1]
+  if (!last) return
+
+  loadingNext.value = true
+  try {
+    const nextSlug = await findNextSlug(last.slug)
+    if (!nextSlug) {
+      feedExhausted.value = true
+      return
+    }
+
+    const nextPost = await $fetch<ApiPost>(`/api/posts/${nextSlug}`)
+    const nextMarkdown = await $fetch<string>(`${config.public.postsBaseUrl}/${nextPost.filename}`)
+
+    let nextRelated: ApiPost[] = []
+    try {
+      const raw = await $fetch<ApiRelatedResponse>(`/api/posts/${nextSlug}/related`, {
+        query: { limit: 10 },
+      })
+      nextRelated = extractRelated(raw)
+    } catch {
+      nextRelated = []
+    }
+
+    loadedPosts.value.push({
+      slug: nextSlug,
+      post: nextPost,
+      html: marked(stripFrontmatter(nextMarkdown)) as string,
+      related: nextRelated,
+      viewCounted: false,
+    })
+    markVisited(nextSlug)
+  } catch {
+    // Сеть/API недоступны — не рушим ленту, просто прекращаем подгрузку.
+    feedExhausted.value = true
+  } finally {
+    loadingNext.value = false
+  }
+}
+
+async function countView(entry: LoadedPost) {
+  if (entry.viewCounted) return
   const clientKey = useClientKey()
   if (!clientKey) return
+  entry.viewCounted = true // ставим сразу — не задваиваем при повторном срабатывании observer'а
 
   try {
-    const result = await $fetch<{ counted: boolean }>(`/api/posts/${slug.value}/views`, {
+    const result = await $fetch<{ counted: boolean }>(`/api/posts/${entry.slug}/views`, {
       method: 'POST',
       body: { client_key: clientKey },
     })
-    if (result.counted && displayedViews.value !== null) {
-      displayedViews.value += 1
-    }
+    if (result.counted) entry.post.views += 1
   } catch {
-    // Тихо игнорируем — счётчик просмотров не должен ломать чтение поста.
+    // Тихо игнорируем — счётчик не должен мешать чтению.
   }
+}
+
+const sentinel = ref<HTMLElement | null>(null)
+let sentinelObserver: IntersectionObserver | null = null
+
+const articleRefs = new Map<string, HTMLElement>()
+function setArticleRef(slug: string, el: Element | null) {
+  if (el instanceof HTMLElement) {
+    articleRefs.set(slug, el)
+    activeObserver?.observe(el)
+  } else {
+    const existing = articleRefs.get(slug)
+    if (existing) activeObserver?.unobserve(existing)
+    articleRefs.delete(slug)
+  }
+}
+
+let activeObserver: IntersectionObserver | null = null
+
+function updateHistoryAndTitle(entry: LoadedPost) {
+  const path = `/posts/${entry.slug}`
+  if (window.location.pathname !== path) {
+    window.history.pushState({}, '', path)
+  }
+  document.title = entry.post.title ? `${entry.post.title} — Week-book` : 'Week-book'
+}
+
+onMounted(() => {
+  sentinelObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) appendNextPost()
+    },
+    { rootMargin: '600px 0px 600px 0px' },
+  )
+  if (sentinel.value) sentinelObserver.observe(sentinel.value)
+
+  // Тонкая горизонтальная полоса у верха вьюпорта — какой пост её
+  // пересекает, тот и считается "текущим" независимо от его высоты.
+  activeObserver = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue
+        const slug = (e.target as HTMLElement).dataset.slug
+        const entry = loadedPosts.value.find((p) => p.slug === slug)
+        if (entry) {
+          updateHistoryAndTitle(entry)
+          countView(entry)
+        }
+      }
+    },
+    { rootMargin: '-45% 0px -50% 0px', threshold: 0 },
+  )
+
+  for (const [, el] of articleRefs) activeObserver.observe(el)
+
+  // Первый пост уже виден при маунте — считаем сразу.
+  if (loadedPosts.value[0]) countView(loadedPosts.value[0])
+})
+
+onBeforeUnmount(() => {
+  sentinelObserver?.disconnect()
+  activeObserver?.disconnect()
 })
 
 let touchStartX = 0
@@ -95,16 +233,19 @@ function onTouchStart(e: TouchEvent) {
 function onTouchEnd(e: TouchEvent) {
   const dx = e.changedTouches[0].clientX - touchStartX
   const dy = e.changedTouches[0].clientY - touchStartY
-  if (dx > 70 && Math.abs(dy) < 50) {
-    navigateTo('/')
-  }
+  if (dx > 70 && Math.abs(dy) < 50) navigateTo('/')
+}
+
+function shareUrlFor(post: ApiPost) {
+  if (post.short_id) return `${config.public.redirectBaseUrl}/${post.short_id}`
+  return `${config.public.siteBaseUrl}/posts/${post.slug}`
 }
 
 useSeoMeta({
-  title: () => (post.value?.title ? `${post.value.title} — Week-book` : 'Week-book'),
-  description: () => post.value?.excerpt ?? '',
-  ogTitle: () => (post.value?.title ? `${post.value.title} — Week-book` : 'Week-book'),
-  ogDescription: () => post.value?.excerpt ?? '',
+  title: () => (firstPost.value?.title ? `${firstPost.value.title} — Week-book` : 'Week-book'),
+  description: () => firstPost.value?.excerpt ?? '',
+  ogTitle: () => (firstPost.value?.title ? `${firstPost.value.title} — Week-book` : 'Week-book'),
+  ogDescription: () => firstPost.value?.excerpt ?? '',
 })
 </script>
 
@@ -112,37 +253,55 @@ useSeoMeta({
   <p v-if="loading">Загрузка...</p>
   <p v-else-if="notFound">Пост не найден.</p>
   <p v-else-if="error">{{ error }}</p>
-  <p v-else-if="!post">Пост не найден.</p>
-  <article class="post" v-else @touchstart="onTouchStart" @touchend="onTouchEnd">
-    <h1>{{ post.title }}</h1>
-    <div class="meta">
-      {{ post.date }}
-      <span v-if="displayedViews !== null" class="views">
-        <svg
-          class="views-icon"
-          viewBox="0 0 24 24"
-          width="14"
-          height="14"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-        {{ displayedViews }}
-      </span>
-    </div>
-    <div v-html="html"></div>
-    <PostWidget
-      :share-url="shareUrl"
-      :share-display-url="shareDisplayUrl"
-      :share-title="post.title"
-      :related="related"
+  <template v-else>
+    <article
+      v-for="entry in loadedPosts"
+      :key="entry.slug"
+      :ref="(el) => setArticleRef(entry.slug, el as Element | null)"
+      :data-slug="entry.slug"
+      class="post"
+      @touchstart="onTouchStart"
+      @touchend="onTouchEnd"
+    >
+      <h1>{{ entry.post.title }}</h1>
+      <div class="meta">
+        {{ entry.post.date }}
+        <span class="views">
+          <svg
+            class="views-icon"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          {{ entry.post.views }}
+        </span>
+      </div>
+      <div v-html="entry.html"></div>
+
+      <PostWidget
+        :share-url="shareUrlFor(entry.post)"
+        :share-title="entry.post.title"
+        :related="entry.related"
+      />
+    </article>
+
+    <div ref="sentinel" class="feed-sentinel" aria-hidden="true"></div>
+    <p v-if="loadingNext" class="feed-loading">Загружаю следующий пост…</p>
+
+    <EndOfFeed
+      v-if="sessionLimitReached"
+      :already-shown="celebrationShown"
+      @shown="celebrationShown = true"
     />
-  </article>
+  </template>
 </template>
 
 <style scoped>
@@ -178,6 +337,10 @@ useSeoMeta({
   overflow-x: auto;
 }
 
+.post {
+  margin-bottom: 3rem;
+}
+
 .meta {
   display: flex;
   align-items: center;
@@ -195,5 +358,16 @@ useSeoMeta({
 
 .views-icon {
   flex-shrink: 0;
+}
+
+.feed-sentinel {
+  height: 1px;
+}
+
+.feed-loading {
+  text-align: center;
+  opacity: 0.6;
+  font-size: 0.9rem;
+  padding: 1rem 0;
 }
 </style>
