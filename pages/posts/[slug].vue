@@ -5,14 +5,8 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const slug = computed(() => String(route.params.slug))
 
-// Метаданные — через серверный прокси к posts-api.
-const { data: post, error: postError } = await useFetch<ApiPost>(
-  () => `/api/posts/${slug.value}`,
-)
+const { data: post, error: postError } = await useFetch<ApiPost>(() => `/api/posts/${slug.value}`)
 
-// Тело поста по-прежнему живёт только в MinIO — posts-api его не отдаёт
-// (осознанное разделение, см. api-architecture.md: API не касается контента,
-// только метаданных). filename берём из ответа API, а не из index.json.
 const { data: markdown, error: markdownError } = await useFetch<string>(
   () => (post.value ? `${config.public.postsBaseUrl}/${post.value.filename}` : null),
   { watch: [post] },
@@ -36,6 +30,36 @@ const error = computed(() =>
       : null,
 )
 
+// Счётчик просмотров: считаем один раз за монтирование страницы поста,
+// dedup по TTL (18ч) — на стороне posts-api, см. api.md.
+const displayedViews = ref<number | null>(null)
+
+watch(
+  post,
+  (value) => {
+    if (value) displayedViews.value = value.views
+  },
+  { immediate: true },
+)
+
+onMounted(async () => {
+  if (!post.value) return
+  const clientKey = useClientKey()
+  if (!clientKey) return
+
+  try {
+    const result = await $fetch<{ counted: boolean }>(`/api/posts/${slug.value}/views`, {
+      method: 'POST',
+      body: { client_key: clientKey },
+    })
+    if (result.counted && displayedViews.value !== null) {
+      displayedViews.value += 1
+    }
+  } catch {
+    // Тихо игнорируем — счётчик просмотров не должен ломать чтение поста.
+  }
+})
+
 let touchStartX = 0
 let touchStartY = 0
 
@@ -47,7 +71,6 @@ function onTouchStart(e: TouchEvent) {
 function onTouchEnd(e: TouchEvent) {
   const dx = e.changedTouches[0].clientX - touchStartX
   const dy = e.changedTouches[0].clientY - touchStartY
-  // свайп вправо, горизонтальный (не вертикальный скролл)
   if (dx > 70 && Math.abs(dy) < 50) {
     navigateTo('/')
   }
@@ -68,7 +91,26 @@ useSeoMeta({
   <p v-else-if="!post">Пост не найден.</p>
   <article class="post" v-else @touchstart="onTouchStart" @touchend="onTouchEnd">
     <h1>{{ post.title }}</h1>
-    <div class="meta">{{ post.date }}</div>
+    <div class="meta">
+      {{ post.date }}
+      <span v-if="displayedViews !== null" class="views">
+        <svg
+          class="views-icon"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        {{ displayedViews }}
+      </span>
+    </div>
     <div v-html="html"></div>
   </article>
 </template>
@@ -104,5 +146,24 @@ useSeoMeta({
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.views {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  opacity: 0.6;
+  font-size: 0.85em;
+}
+
+.views-icon {
+  flex-shrink: 0;
 }
 </style>

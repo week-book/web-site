@@ -35,7 +35,11 @@ function client() {
  */
 export async function fetchPostsApi<T>(
   path: string,
-  opts: { query?: Record<string, unknown>; method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {},
+  opts: {
+    query?: Record<string, unknown>
+    method?: 'GET' | 'POST' | 'DELETE'
+    body?: unknown
+  } = {},
 ): Promise<T> {
   const { baseURL, apiKey } = client()
 
@@ -84,8 +88,12 @@ export async function fetchPostsApiPublic<T>(
  * не пробрасывая тело/детали upstream-ответа наружу без необходимости.
  */
 function mapError(err: unknown): PostsApiError {
-  const fetchErr = err as { response?: { status?: number; _data?: PostsApiErrorPayload }; message?: string }
+  const fetchErr = err as {
+    response?: { status?: number; _data?: PostsApiErrorPayload }
+    message?: string
+  }
   const status = fetchErr?.response?.status ?? 502
-  const message = fetchErr?.response?._data?.error ?? fetchErr?.message ?? 'posts-api request failed'
+  const message =
+    fetchErr?.response?._data?.error ?? fetchErr?.message ?? 'posts-api request failed'
   return new PostsApiError(status, message)
 }
