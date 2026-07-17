@@ -13,10 +13,7 @@ function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n?/, '')
 }
 
-function extractRelated(raw: ApiRelatedResponse | null | undefined): ApiPost[] {
-  if (!raw) return []
-  return Array.isArray(raw) ? raw : (raw.posts ?? [])
-}
+const { marked } = await import('marked')
 
 const route = useRoute()
 const config = useRuntimeConfig()
