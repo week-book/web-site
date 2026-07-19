@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { ApiPost, ApiRelatedResponse } from '../../types/apiPost'
+import { renderPostBody } from '../../utils/renderPostBody'
+import { initCarousels } from '../../composables/useCarousels'
 
 interface LoadedPost {
   slug: string
@@ -12,8 +14,6 @@ interface LoadedPost {
 function stripFrontmatter(md: string): string {
   return md.replace(/^---[\s\S]*?---\n?/, '')
 }
-
-const { marked } = await import('marked')
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -48,12 +48,7 @@ const error = computed(() =>
       : null,
 )
 
-const {
-  sessionLimitReached,
-  celebrationShown,
-  markVisited,
-  findNextSlug,
-} = useNextPost()
+const { sessionLimitReached, celebrationShown, markVisited, findNextSlug } = useNextPost()
 
 const loadedPosts = ref<LoadedPost[]>([])
 const loadingNext = ref(false)
@@ -67,7 +62,7 @@ watch(
       {
         slug: initialSlug,
         post: value,
-        html: firstMarkdown.value ? (marked(stripFrontmatter(firstMarkdown.value)) as string) : '',
+        html: firstMarkdown.value ? renderPostBody(stripFrontmatter(firstMarkdown.value)) : '',
         related: extractRelated(firstRelatedRaw.value),
         viewCounted: false,
       },
@@ -106,7 +101,7 @@ async function appendNextPost() {
     loadedPosts.value.push({
       slug: nextSlug,
       post: nextPost,
-      html: marked(stripFrontmatter(nextMarkdown)) as string,
+      html: renderPostBody(stripFrontmatter(nextMarkdown)),
       related: nextRelated,
       viewCounted: false,
     })
@@ -161,6 +156,12 @@ function updateHistoryAndTitle(entry: LoadedPost) {
   document.title = entry.post.title ? `${entry.post.title} — Week-book` : 'Week-book'
 }
 
+// Обёртка со всей лентой постов — на неё вешаем MutationObserver, чтобы
+// карусели инициализировались сами при появлении любого нового поста
+// (первый рендер, бесшовная подгрузка следующего — не важно, откуда).
+const feedContainer = ref<HTMLElement | null>(null)
+let carouselObserver: MutationObserver | null = null
+
 onMounted(() => {
   sentinelObserver = new IntersectionObserver(
     (entries) => {
@@ -191,26 +192,22 @@ onMounted(() => {
 
   // Первый пост уже виден при маунте — считаем сразу.
   if (loadedPosts.value[0]) countView(loadedPosts.value[0])
+
+  if (feedContainer.value) {
+    carouselObserver = new MutationObserver(() => {
+      if (feedContainer.value) initCarousels(feedContainer.value)
+    })
+    carouselObserver.observe(feedContainer.value, { childList: true, subtree: true })
+    // на случай, если контент уже отрисован к моменту маунта
+    initCarousels(feedContainer.value)
+  }
 })
 
 onBeforeUnmount(() => {
   sentinelObserver?.disconnect()
   activeObserver?.disconnect()
+  carouselObserver?.disconnect()
 })
-
-let touchStartX = 0
-let touchStartY = 0
-
-function onTouchStart(e: TouchEvent) {
-  touchStartX = e.touches[0].clientX
-  touchStartY = e.touches[0].clientY
-}
-
-function onTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - touchStartX
-  const dy = e.changedTouches[0].clientY - touchStartY
-  if (dx > 70 && Math.abs(dy) < 50) navigateTo('/')
-}
 
 function shareUrlFor(post: ApiPost) {
   if (post.short_id) return `${config.public.redirectBaseUrl}/${post.short_id}`
@@ -230,53 +227,53 @@ useSeoMeta({
   <p v-else-if="notFound">Пост не найден.</p>
   <p v-else-if="error">{{ error }}</p>
   <template v-else>
-    <article
-      v-for="entry in loadedPosts"
-      :key="entry.slug"
-      :ref="(el) => setArticleRef(entry.slug, el as Element | null)"
-      :data-slug="entry.slug"
-      class="post"
-      @touchstart="onTouchStart"
-      @touchend="onTouchEnd"
-    >
-      <h1>{{ entry.post.title }}</h1>
-      <div class="meta">
-        {{ entry.post.date }}
-        <span class="views">
-          <svg
-            class="views-icon"
-            viewBox="0 0 24 24"
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-          {{ entry.post.views }}
-        </span>
-      </div>
-      <div v-html="entry.html"></div>
+    <div ref="feedContainer">
+      <article
+        v-for="entry in loadedPosts"
+        :key="entry.slug"
+        :ref="(el) => setArticleRef(entry.slug, el as Element | null)"
+        :data-slug="entry.slug"
+        class="post"
+      >
+        <h1>{{ entry.post.title }}</h1>
+        <div class="meta">
+          {{ entry.post.date }}
+          <span class="views">
+            <svg
+              class="views-icon"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            {{ entry.post.views }}
+          </span>
+        </div>
+        <div v-html="entry.html"></div>
 
-      <PostWidget
-        :share-url="shareUrlFor(entry.post)"
-        :share-title="entry.post.title"
-        :related="entry.related"
+        <PostWidget
+          :share-url="shareUrlFor(entry.post)"
+          :share-title="entry.post.title"
+          :related="entry.related"
+        />
+      </article>
+
+      <div ref="sentinel" class="feed-sentinel" aria-hidden="true"></div>
+      <p v-if="loadingNext" class="feed-loading">Загружаю следующий пост…</p>
+
+      <EndOfFeed
+        v-if="sessionLimitReached"
+        :already-shown="celebrationShown"
+        @shown="celebrationShown = true"
       />
-    </article>
-
-    <div ref="sentinel" class="feed-sentinel" aria-hidden="true"></div>
-    <p v-if="loadingNext" class="feed-loading">Загружаю следующий пост…</p>
-
-    <EndOfFeed
-      v-if="sessionLimitReached"
-      :already-shown="celebrationShown"
-      @shown="celebrationShown = true"
-    />
+    </div>
   </template>
 </template>
 
@@ -345,5 +342,103 @@ useSeoMeta({
   opacity: 0.6;
   font-size: 0.9rem;
   padding: 1rem 0;
+}
+
+/* --- Карусель фото --- */
+:deep(.post-carousel) {
+  margin: 1.5rem 0;
+}
+
+:deep(.carousel-viewport) {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+:deep(.carousel-track) {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  cursor: grab;
+  scrollbar-width: none;
+}
+:deep(.carousel-track::-webkit-scrollbar) {
+  display: none;
+}
+:deep(.carousel-track.dragging) {
+  cursor: grabbing;
+  scroll-snap-type: none;
+}
+
+:deep(.carousel-slide) {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  aspect-ratio: 4 / 3;
+}
+:deep(.carousel-slide img) {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  display: block !important;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+:deep(.carousel-arrow) {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  transition:
+    opacity 0.15s,
+    background 0.15s;
+}
+:deep(.carousel-arrow:hover) {
+  background: rgba(0, 0, 0, 0.65);
+}
+:deep(.carousel-arrow:disabled) {
+  opacity: 0;
+  pointer-events: none;
+}
+:deep(.carousel-arrow--prev) {
+  left: 10px;
+}
+:deep(.carousel-arrow--next) {
+  right: 10px;
+}
+
+:deep(.carousel-counter) {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  backdrop-filter: blur(2px);
+}
+
+@media (hover: none) {
+  :deep(.carousel-arrow) {
+    display: none; /* на тач-устройствах хватает свайпа */
+  }
 }
 </style>
