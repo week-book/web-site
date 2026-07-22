@@ -436,6 +436,38 @@ useSeoMeta({
   backdrop-filter: blur(2px);
 }
 
+:deep(.carousel-slide) {
+  position: relative;
+}
+:deep(.carousel-caption) {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.5rem 0.75rem 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0));
+}
+
+:deep(.carousel-slide) {
+  position: relative;
+}
+:deep(.carousel-caption) {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.5rem 0.75rem 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0));
+}
+
 @media (hover: none) {
   :deep(.carousel-arrow) {
     display: none; /* на тач-устройствах хватает свайпа */

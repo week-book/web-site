@@ -30,10 +30,12 @@ function escapeAttr(s: string) {
 
 function renderCarousel(images: Tokens.Image[]): string {
   const slides = images
-    .map(
-      (img) =>
-        `<div class="carousel-slide"><img src="${img.href}" alt="${escapeAttr(img.text ?? '')}" loading="lazy" /></div>`,
-    )
+    .map((img) => {
+      const caption = img.title
+        ? `<span class="carousel-caption">${escapeAttr(img.title)}</span>`
+        : ''
+      return `<div class="carousel-slide"><img src="${img.href}" alt="${escapeAttr(img.text ?? '')}" loading="lazy" />${caption}</div>`
+    })
     .join('')
 
   return `<div class="post-carousel" data-carousel>
