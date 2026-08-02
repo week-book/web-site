@@ -21,3 +21,7 @@ export interface ApiPostList {
 }
 
 export type ApiRelatedResponse = ApiPost[] | { posts: ApiPost[] }
+
+export interface ApiClustersResponse {
+  clusters: string[]
+}
