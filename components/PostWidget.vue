@@ -1,21 +1,27 @@
 <script setup lang="ts">
 import type { ApiPost } from '../types/apiPost'
+import { YOU_LOVE_IT_TAG } from '../utils/constants'
 
-defineProps<{
+const props = defineProps<{
   shareUrl: string
-  shareDisplayUrl: string
   shareTitle?: string
   related: ApiPost[]
+  tags?: string[]
 }>()
+
+const hasYouLoveIt = computed(() => props.tags?.includes(YOU_LOVE_IT_TAG) ?? false)
 </script>
 
 <template>
   <div class="post-widget">
-    <SelfPromo
-      :share-url="shareUrl"
-      :share-display-url="shareDisplayUrl"
-      :share-title="shareTitle"
-    />
+    <template v-if="hasYouLoveIt">
+      <YouLoveItPromo :tagged-post="true" />
+      <SelfPromo :share-url="shareUrl" :share-title="shareTitle" />
+    </template>
+    <template v-else>
+      <SelfPromo :share-url="shareUrl" :share-title="shareTitle" />
+    </template>
+
     <RelatedPosts :posts="related" />
   </div>
 </template>

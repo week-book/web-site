@@ -262,6 +262,7 @@ useSeoMeta({
           :share-url="shareUrlFor(entry.post)"
           :share-title="entry.post.title"
           :related="entry.related"
+          :tags="entry.post.tags"
         />
       </article>
 

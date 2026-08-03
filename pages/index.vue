@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import type { ApiClustersResponse, ApiPostList } from '../types/apiPost'
+import { YOU_LOVE_IT_TAG } from '../utils/constants'
 
 const PAGE_SIZE = 20
 
-// TODO(sprint-5, техдолг): точный строковый формат тега YouLoveIt в данных
-// не подтверждён (см. sprint-5.md). Значение ниже — предположение по
-// конвенции tags[]/«#тег» из site.md, сверить с реальным постом перед мёржем.
-const YOU_LOVE_IT_TAG = 'YouLoveIt'
-
-// Человекочитаемые названия для db-значений cluster (см. описание кластеров
-// в контент-проекте). Порядок ключей задаёт порядок чипов на экране —
-// не алфавитный порядок ответа /posts/clusters, а смысловой.
 const CLUSTER_LABELS: Record<string, string> = {
   site_growth: 'Сайт как дневник роста',
   books: 'Книги',
@@ -65,27 +58,31 @@ const clusters = computed(() => {
 // Счётчики постов на каждый чип. Отдельного агрегирующего эндпоинта в
 // posts-api нет, поэтому считаем через total из GET /posts?...&limit=1 —
 // сам список постов при limit=1 нам не нужен, только total.
-const { data: countsData } = await useAsyncData('cluster-counts', async () => {
-  const clusterList = clusters.value
-  const [allRes, youLoveItRes, ...clusterRes] = await Promise.all([
-    $fetch<ApiPostList>('/api/posts', { query: { limit: 1 } }),
-    $fetch<ApiPostList>('/api/posts', { query: { limit: 1, tag: YOU_LOVE_IT_TAG } }),
-    ...clusterList.map((cluster) =>
-      $fetch<ApiPostList>('/api/posts', { query: { limit: 1, cluster } }),
-    ),
-  ])
+const { data: countsData } = await useAsyncData(
+  'cluster-counts',
+  async () => {
+    const clusterList = clusters.value
+    const [allRes, youLoveItRes, ...clusterRes] = await Promise.all([
+      $fetch<ApiPostList>('/api/posts', { query: { limit: 1 } }),
+      $fetch<ApiPostList>('/api/posts', { query: { limit: 1, tag: YOU_LOVE_IT_TAG } }),
+      ...clusterList.map((cluster) =>
+        $fetch<ApiPostList>('/api/posts', { query: { limit: 1, cluster } }),
+      ),
+    ])
 
-  const perCluster: Record<string, number> = {}
-  clusterList.forEach((cluster, i) => {
-    perCluster[cluster] = clusterRes[i]?.total ?? 0
-  })
+    const perCluster: Record<string, number> = {}
+    clusterList.forEach((cluster, i) => {
+      perCluster[cluster] = clusterRes[i]?.total ?? 0
+    })
 
-  return {
-    all: allRes.total ?? 0,
-    youLoveIt: youLoveItRes.total ?? 0,
-    perCluster,
-  }
-}, { watch: [clusters] })
+    return {
+      all: allRes.total ?? 0,
+      youLoveIt: youLoveItRes.total ?? 0,
+      perCluster,
+    }
+  },
+  { watch: [clusters] },
+)
 
 function countFor(cluster: string): number {
   return countsData.value?.perCluster[cluster] ?? 0
