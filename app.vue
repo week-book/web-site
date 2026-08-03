@@ -39,12 +39,16 @@ onMounted(() => {
   --color-bg: #ffffff;
   --color-text: #1a202c;
   --color-border: #e2e8f0;
+  --color-accent: #1a202c;
+  --color-accent-text: #ffffff;
 }
 
 [data-theme='dark'] {
   --color-bg: #1a202c;
   --color-text: #e2e8f0;
   --color-border: #2d3748;
+  --color-accent: #e2e8f0;
+  --color-accent-text: #1a202c;
 }
 
 body {

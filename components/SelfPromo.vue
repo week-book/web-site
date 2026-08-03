@@ -132,15 +132,18 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   padding: 0.55rem 1.1rem;
   border-radius: 8px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  background: transparent;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
   cursor: pointer;
   font: inherit;
+  font-weight: 500;
   white-space: nowrap;
+  transition: opacity 0.15s ease;
 }
 
 .self-promo__share:hover {
-  background: var(--color-border, #e2e8f0);
+  opacity: 0.85;
 }
 
 /* На мобильном QR не нужен (сканировать нечем), но раньше это оставляло

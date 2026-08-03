@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
         limit: query.limit,
         offset: query.offset,
         tag: query.tag,
+        cluster: query.cluster,
       },
     })
   } catch (err) {
