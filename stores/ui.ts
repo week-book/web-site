@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, skipHydrate } from 'pinia'
 import { ref } from 'vue'
 
 export const useUiStore = defineStore('ui', () => {
@@ -12,5 +12,5 @@ export const useUiStore = defineStore('ui', () => {
     }
   }
 
-  return { theme, setTheme }
+  return { theme: skipHydrate(theme), setTheme }
 })
