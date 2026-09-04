@@ -1,21 +1,8 @@
 <script setup lang="ts">
 import type { ApiClustersResponse, ApiPostList } from '../types/apiPost'
-import { YOU_LOVE_IT_TAG } from '../utils/constants'
+import { YOU_LOVE_IT_TAG, CLUSTER_LABELS, clusterLabel } from '../utils/constants'
 
 const PAGE_SIZE = 20
-
-const CLUSTER_LABELS: Record<string, string> = {
-  site_growth: 'Сайт как дневник роста',
-  books: 'Книги',
-  write: 'Ремесло письма',
-  life: 'Жизнь вокруг',
-  art: 'Искусство',
-  people: 'Люди / письма',
-}
-
-function clusterLabel(cluster: string): string {
-  return CLUSTER_LABELS[cluster] ?? cluster
-}
 
 const route = useRoute()
 const router = useRouter()

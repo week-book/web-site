@@ -2,6 +2,7 @@
 import type { ApiPost, ApiRelatedResponse } from '../../types/apiPost'
 import { renderPostBody } from '../../utils/renderPostBody'
 import { initCarousels } from '../../composables/useCarousels'
+import { clusterLabel } from '../../utils/constants'
 
 interface LoadedPost {
   slug: string
@@ -19,27 +20,38 @@ const route = useRoute()
 const config = useRuntimeConfig()
 const initialSlug = String(route.params.slug)
 
-// Первый пост — как и раньше, SSR useFetch (SEO, og-теги, прямые переходы
-// по /posts/:slug должны работать независимо от бесшовного режима).
+// Блокирующий (не lazy) fetch — сервер и клиент гарантированно видят
+// одинаковые данные при рендере, hydration mismatch исключён.
+// Waterfall всё равно сокращён: пост — обязательно первым (без него
+// не узнать filename), markdown и related — параллельно через Promise.all,
+// а не по очереди.
 const { data: firstPost, error: postError } = await useFetch<ApiPost>(
   () => `/api/posts/${initialSlug}`,
 )
-const { data: firstMarkdown, error: markdownError } = await useFetch<string>(
-  () => (firstPost.value ? `${config.public.postsBaseUrl}/${firstPost.value.filename}` : null),
-  { watch: [firstPost] },
-)
-const { data: firstRelatedRaw } = await useFetch<ApiRelatedResponse>(
-  () => (firstPost.value ? `/api/posts/${initialSlug}/related` : null),
-  { query: { limit: 10 }, watch: [firstPost] },
-)
+
+const notFound = computed(() => postError.value?.statusCode === 404)
+
+let firstMarkdown: Ref<string | null> = ref(null)
+let markdownError: Ref<unknown> = ref(null)
+let firstRelatedRaw: Ref<ApiRelatedResponse | null> = ref(null)
+
+if (firstPost.value) {
+  const [markdownResult, relatedResult] = await Promise.all([
+    useFetch<string>(() => `${config.public.postsBaseUrl}/${firstPost.value!.filename}`),
+    useFetch<ApiRelatedResponse>(() => `/api/posts/${initialSlug}/related`, {
+      query: { limit: 10 },
+    }),
+  ])
+  firstMarkdown = markdownResult.data
+  markdownError = markdownResult.error
+  firstRelatedRaw = relatedResult.data
+}
 
 function extractRelated(raw: ApiRelatedResponse | null | undefined): ApiPost[] {
   if (!raw) return []
   return Array.isArray(raw) ? raw : (raw.posts ?? [])
 }
 
-const notFound = computed(() => postError.value?.statusCode === 404)
-const loading = computed(() => !firstPost.value && !postError.value)
 const error = computed(() =>
   postError.value && !notFound.value
     ? 'Не удалось загрузить пост.'
@@ -54,23 +66,20 @@ const loadedPosts = ref<LoadedPost[]>([])
 const loadingNext = ref(false)
 const feedExhausted = ref(false)
 
-watch(
-  firstPost,
-  (value) => {
-    if (!value || loadedPosts.value.length) return
-    loadedPosts.value = [
-      {
-        slug: initialSlug,
-        post: value,
-        html: firstMarkdown.value ? renderPostBody(stripFrontmatter(firstMarkdown.value)) : '',
-        related: extractRelated(firstRelatedRaw.value),
-        viewCounted: false,
-      },
-    ]
-    markVisited(initialSlug)
-  },
-  { immediate: true },
-)
+// К этому моменту все awaited-фетчи выше уже разрешились — данные
+// гарантированно на месте, никакой реактивной гонки строить не нужно.
+if (firstPost.value && firstMarkdown.value) {
+  loadedPosts.value = [
+    {
+      slug: initialSlug,
+      post: firstPost.value,
+      html: renderPostBody(stripFrontmatter(firstMarkdown.value)),
+      related: extractRelated(firstRelatedRaw.value),
+      viewCounted: false,
+    },
+  ]
+  markVisited(initialSlug)
+}
 
 async function appendNextPost() {
   if (loadingNext.value || feedExhausted.value || sessionLimitReached.value) return
@@ -223,8 +232,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <p v-if="loading">Загрузка...</p>
-  <p v-else-if="notFound">Пост не найден.</p>
+  <p v-if="notFound">Пост не найден.</p>
   <p v-else-if="error">{{ error }}</p>
   <template v-else>
     <div ref="feedContainer">
@@ -235,6 +243,15 @@ useSeoMeta({
         :data-slug="entry.slug"
         class="post"
       >
+        <nav class="post-nav">
+          <NuxtLink to="/">Главная</NuxtLink>
+          <template v-if="entry.post.cluster">
+            <span class="post-nav__sep">·</span>
+            <NuxtLink :to="`/?cluster=${encodeURIComponent(entry.post.cluster)}`">
+              {{ clusterLabel(entry.post.cluster) }}
+            </NuxtLink>
+          </template>
+        </nav>
         <h1>{{ entry.post.title }}</h1>
         <div class="meta">
           {{ entry.post.date }}
@@ -283,6 +300,7 @@ useSeoMeta({
   max-width: 480px;
   width: 100%;
   height: auto;
+  background: var(--color-border);
   border-radius: 8px;
   border: 1px solid var(--color-border);
   display: block;
@@ -309,6 +327,29 @@ useSeoMeta({
   padding: 1rem;
   border-radius: 8px;
   overflow-x: auto;
+}
+
+.post-nav {
+  font-size: 0.85em;
+  opacity: 0.6;
+  margin-bottom: 0.2rem;
+}
+
+.post-nav + h1 {
+  margin-top: 0;
+}
+
+.post-nav a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.post-nav a:hover {
+  text-decoration: underline;
+}
+
+.post-nav__sep {
+  margin: 0 0.4em;
 }
 
 .post {
@@ -467,6 +508,10 @@ useSeoMeta({
   color: #fff;
   text-align: center;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0));
+}
+
+.post-skeleton {
+  padding: 1rem 0;
 }
 
 @media (hover: none) {
