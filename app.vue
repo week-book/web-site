@@ -1,7 +1,18 @@
 <template>
   <Header />
+  <NuxtLoadingIndicator color="var(--color-accent)" />
   <main class="main">
-    <NuxtPage />
+    <NuxtPage>
+      <template #fallback>
+        <div class="post-skeleton" aria-hidden="true">
+          <div class="skeleton skeleton--title"></div>
+          <div class="skeleton skeleton--meta"></div>
+          <div class="skeleton skeleton--line"></div>
+          <div class="skeleton skeleton--line"></div>
+          <div class="skeleton skeleton--line skeleton--short"></div>
+        </div>
+      </template>
+    </NuxtPage>
   </main>
 </template>
 
@@ -70,5 +81,57 @@ a {
   max-width: 700px;
   margin: 0 auto;
   padding: 2rem 1rem 22rem;
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+.post-skeleton {
+  padding: 1rem 0;
+}
+
+.skeleton {
+  background: var(--color-border);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton--title {
+  height: 2rem;
+  width: 70%;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton--meta {
+  height: 0.9rem;
+  width: 30%;
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+}
+
+.skeleton--line {
+  height: 1rem;
+  margin-bottom: 0.7rem;
+}
+
+.skeleton--short {
+  width: 60%;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 </style>

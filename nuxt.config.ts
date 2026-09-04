@@ -1,4 +1,7 @@
 export default defineNuxtConfig({
+  app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
+  },
   modules: ['@pinia/nuxt', '@nuxtjs/sitemap', '@vite-pwa/nuxt'],
   ssr: true,
   runtimeConfig: {
