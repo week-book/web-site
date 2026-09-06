@@ -84,6 +84,13 @@ onUnmounted(() => {
   font-size: 1.1rem;
   text-decoration: none;
   margin-right: auto;
+  display: inline-block;
+  transform: scale(1);
+  transition: transform 0.12s ease;
+}
+
+.nav__logo:active {
+  transform: scale(0.94);
 }
 
 .nav__links {
@@ -96,11 +103,19 @@ onUnmounted(() => {
   font-size: 0.95rem;
   text-decoration: none;
   opacity: 0.75;
-  transition: opacity 0.15s;
+  display: inline-block;
+  transform: scale(1);
+  transition:
+    opacity 0.15s ease,
+    transform 0.12s ease;
 }
 
 .nav__link:hover,
 .nav__link.router-link-active {
   opacity: 1;
+}
+
+.nav__link:active {
+  transform: scale(0.92);
 }
 </style>

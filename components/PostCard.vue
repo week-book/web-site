@@ -25,6 +25,12 @@ defineProps<{
 .post-card {
   padding: 1.25rem 0;
   border-bottom: 1px solid var(--color-border, #e2e8f0);
+  transform: scale(1);
+  transition: transform 0.12s ease;
+}
+
+.post-card:active {
+  transform: scale(0.985);
 }
 
 .post-card__title {
@@ -36,10 +42,18 @@ defineProps<{
 .post-card a {
   text-decoration: none;
   color: inherit;
+  display: inline-block;
+  transform: scale(1);
+  transition: transform 0.12s ease;
 }
 
 .post-card__title a:hover {
   text-decoration: underline;
+}
+
+.post-card__title a:active,
+.post-card a:active {
+  transform: scale(0.97);
 }
 
 .post-card__meta {

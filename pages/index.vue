@@ -304,11 +304,17 @@ useSeoMeta({
   color: var(--color-text);
   cursor: pointer;
   font-size: 0.85rem;
+  transform: scale(1);
   transition:
     background 0.15s ease,
     color 0.15s ease,
     border-color 0.15s ease,
-    opacity 0.15s ease;
+    opacity 0.15s ease,
+    transform 0.12s ease;
+}
+
+.filters__chip:active:not(:disabled) {
+  transform: scale(0.93);
 }
 
 .filters__chip:hover:not(:disabled):not(.filters__chip--active) {
@@ -416,10 +422,16 @@ useSeoMeta({
   color: var(--color-text);
   cursor: pointer;
   font-size: 0.9rem;
+  transform: scale(1);
   transition:
     background 0.15s ease,
     color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.feed-end__top-btn:active {
+  transform: scale(0.94);
 }
 
 .feed-end__top-btn:hover {
@@ -445,5 +457,11 @@ useSeoMeta({
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
+  transform: scale(1);
+  transition: transform 0.12s ease;
+}
+
+.feed-error button:active {
+  transform: scale(0.94);
 }
 </style>
