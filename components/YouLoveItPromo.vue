@@ -68,11 +68,19 @@ defineProps<{
   text-decoration: none;
   font-weight: 500;
   white-space: nowrap;
-  transition: opacity 0.15s ease;
+  display: inline-block;
+  transform: scale(1);
+  transition:
+    opacity 0.15s ease,
+    transform 0.12s ease;
 }
 
 .youloveit-promo__cta:hover {
   opacity: 0.85;
+}
+
+.youloveit-promo__cta:active {
+  transform: scale(0.94);
 }
 
 @media (max-width: 640px) {

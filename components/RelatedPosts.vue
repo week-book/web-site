@@ -61,10 +61,17 @@ const visiblePosts = computed(() => props.posts.slice(0, 3))
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-block;
+  transform: scale(1);
+  transition: transform 0.12s ease;
 }
 
 .related-posts__link:hover {
   text-decoration: underline;
+}
+
+.related-posts__link:active {
+  transform: scale(0.96);
 }
 
 .related-posts__date {

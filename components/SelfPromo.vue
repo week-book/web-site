@@ -139,11 +139,18 @@ onBeforeUnmount(() => {
   font: inherit;
   font-weight: 500;
   white-space: nowrap;
-  transition: opacity 0.15s ease;
+  transform: scale(1);
+  transition:
+    opacity 0.15s ease,
+    transform 0.12s ease;
 }
 
 .self-promo__share:hover {
   opacity: 0.85;
+}
+
+.self-promo__share:active {
+  transform: scale(0.94);
 }
 
 /* На мобильном QR не нужен (сканировать нечем), но раньше это оставляло

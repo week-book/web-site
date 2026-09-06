@@ -10,11 +10,11 @@ defineProps<{
 
 <template>
   <article class="post-card">
-    <NuxtLink :to="`/posts/${slug}`">
+    <NuxtLink :to="`/posts/${slug}`" class="post-card__link">
       <h2 class="post-card__title">{{ title }}</h2>
+      <div class="post-card__meta" v-if="date">{{ date }}</div>
+      <p class="post-card__excerpt" v-if="excerpt">{{ excerpt }}</p>
     </NuxtLink>
-    <div class="post-card__meta" v-if="date">{{ date }}</div>
-    <p class="post-card__excerpt" v-if="excerpt">{{ excerpt }}</p>
     <div class="post-card__tags" v-if="tags && tags.length">
       <span class="tag" v-for="tag in tags" :key="tag">#{{ tag }}</span>
     </div>
@@ -27,18 +27,24 @@ defineProps<{
   border-bottom: 1px solid var(--color-border, #e2e8f0);
 }
 
+.post-card__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transform: scale(1);
+  transition: transform 0.12s ease;
+}
+
+.post-card__link:active {
+  transform: scale(0.97);
+}
+
 .post-card__title {
   font-size: 1.25rem;
   margin: 0 0 0.25rem;
 }
 
-.post-card__title a,
-.post-card a {
-  text-decoration: none;
-  color: inherit;
-}
-
-.post-card__title a:hover {
+.post-card__link:hover .post-card__title {
   text-decoration: underline;
 }
 

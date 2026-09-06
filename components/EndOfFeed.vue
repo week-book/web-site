@@ -51,5 +51,12 @@ onMounted(async () => {
 .end-of-feed__link {
   color: inherit;
   text-decoration: underline;
+  display: inline-block;
+  transform: scale(1);
+  transition: transform 0.12s ease;
+}
+
+.end-of-feed__link:active {
+  transform: scale(0.95);
 }
 </style>

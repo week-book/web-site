@@ -46,6 +46,32 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+/* Убирает дешёвую синюю/серую подсветку по тапу на мобильных WebKit/Chromium —
+   именно она давала "прямоугольник" при клике на телефоне. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Не убираем фокус полностью (это важно для доступности с клавиатуры) —
+   заменяем дефолтный браузерный outline на свой, но только когда фокус
+   реально получен с клавиатуры/скринридера (:focus-visible), не по тапу. */
+a:focus,
+button:focus {
+  outline: none;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 :root {
   --color-bg: #ffffff;
   --color-text: #1a202c;

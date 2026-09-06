@@ -26,5 +26,11 @@ function toggle() {
   cursor: pointer;
   padding: 0.25rem;
   line-height: 1;
+  transform: scale(1);
+  transition: transform 0.12s ease;
+}
+
+.theme-toggle:active {
+  transform: scale(0.85) rotate(-8deg);
 }
 </style>
