@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import type { ApiClustersResponse, ApiPostList } from '../types/apiPost'
+import type { ApiClustersResponse, ApiPost, ApiPostList } from '../types/apiPost'
 import { YOU_LOVE_IT_TAG, CLUSTER_LABELS, clusterLabel } from '../utils/constants'
 
 const PAGE_SIZE = 20
 
 const route = useRoute()
 const router = useRouter()
-
-const page = computed(() => {
-  const raw = Number(route.query.page)
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1
-})
-
-const offset = computed(() => (page.value - 1) * PAGE_SIZE)
 
 // Единая модель выбора: либо "всё" (null), либо реальный db-кластер,
 // либо YouLoveIt — концептуально это тоже кластер (свой раздел), просто
@@ -25,8 +18,27 @@ const activeCluster = computed(() => {
 })
 
 const youLoveItOnly = computed(() => route.query.tag === YOU_LOVE_IT_TAG)
+const activeTagQuery = computed(() => (youLoveItOnly.value ? YOU_LOVE_IT_TAG : undefined))
 
-const { data: clustersData } = await useFetch<ApiClustersResponse>('/api/posts/clusters')
+// Список постов и список кластеров не зависят друг от друга — запускаем
+// оба useFetch без промежуточного await, дожидаемся общим Promise.all.
+// См. предыдущий фикс навигационного джанка — цепочка последовательных
+// await была источником ~2с задержки первого контента.
+//
+// ВАЖНО (лента вместо пагинации): этот useFetch отвечает только за ПЕРВУЮ
+// страницу (offset всегда 0). Дальнейшие страницы грузятся вручную через
+// loadMore() и копятся в loadedPosts — see ниже. offset больше не читается
+// из ?page= в URL, лента всегда начинается с начала при заходе на сайт
+// или смене фильтра.
+const clustersFetch = useFetch<ApiClustersResponse>('/api/posts/clusters')
+const firstPageFetch = useFetch<ApiPostList>('/api/posts', {
+  query: { limit: PAGE_SIZE, offset: 0, cluster: activeCluster, tag: activeTagQuery },
+  watch: [activeCluster, activeTagQuery],
+})
+
+const [{ data: clustersData }, { data: firstPageData, error: fetchError, pending }] =
+  await Promise.all([clustersFetch, firstPageFetch])
+
 const clusterOrder = Object.keys(CLUSTER_LABELS)
 const clusters = computed(() => {
   const raw = clustersData.value?.clusters ?? []
@@ -42,10 +54,9 @@ const clusters = computed(() => {
   })
 })
 
-// Счётчики постов на каждый чип. Отдельного агрегирующего эндпоинта в
-// posts-api нет, поэтому считаем через total из GET /posts?...&limit=1 —
-// сам список постов при limit=1 нам не нужен, только total.
-const { data: countsData } = await useAsyncData(
+// Счётчики постов на каждый чип — второстепенная деталь UI, грузится без
+// блокировки первого рендера (см. предыдущий фикс).
+const { data: countsData } = useAsyncData(
   'cluster-counts',
   async () => {
     const clusterList = clusters.value
@@ -68,51 +79,123 @@ const { data: countsData } = await useAsyncData(
       perCluster,
     }
   },
-  { watch: [clusters] },
+  { watch: [clusters], server: false, lazy: true },
 )
 
 function countFor(cluster: string): number {
   return countsData.value?.perCluster[cluster] ?? 0
 }
 
-const activeTagQuery = computed(() => (youLoveItOnly.value ? YOU_LOVE_IT_TAG : undefined))
+// ---------------------------------------------------------------------
+// Бесшовная лента: список постов, накопленный из первой SSR-страницы
+// плюс всех дозагруженных клиентом. Аналог механизма из useNextPost.ts
+// на странице поста, только тут листаем общую ленту `GET /api/posts` по
+// offset, а не related-подбор следующего поста.
+// ---------------------------------------------------------------------
 
-const {
-  data,
-  error: fetchError,
-  pending,
-} = await useFetch<ApiPostList>('/api/posts', {
-  query: { limit: PAGE_SIZE, offset, cluster: activeCluster, tag: activeTagQuery },
-  watch: [offset, activeCluster, activeTagQuery],
-})
+const loadedPosts = ref<ApiPost[]>([])
+const total = ref(0)
+const nextOffset = ref(PAGE_SIZE)
+const loadingMore = ref(false)
+const loadMoreError = ref(false)
 
-const posts = computed(() => data.value?.posts ?? [])
-const total = computed(() => data.value?.total ?? 0)
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+// Синхронизация с первой страницей — срабатывает и при первом заходе, и
+// при каждой смене фильтра (activeCluster/activeTagQuery), потому что
+// firstPageFetch сам перезапускается через watch. Сброс ленты на смену
+// фильтра происходит автоматически, без отдельного кода.
+watch(
+  firstPageData,
+  (val) => {
+    loadedPosts.value = val?.posts ?? []
+    total.value = val?.total ?? 0
+    nextOffset.value = PAGE_SIZE
+    loadMoreError.value = false
+  },
+  { immediate: true },
+)
 
-const loading = computed(() => pending.value)
-const initialLoading = computed(() => pending.value && !data.value)
+const hasMore = computed(() => loadedPosts.value.length < total.value)
+const initialLoading = computed(() => pending.value && loadedPosts.value.length === 0)
 const error = computed(() => (fetchError.value ? 'Не удалось загрузить посты.' : null))
 
-function goToPage(next: number) {
-  const clamped = Math.min(Math.max(1, next), totalPages.value)
-  router.push({ query: { ...route.query, page: clamped === 1 ? undefined : clamped } })
+async function loadMore() {
+  if (loadingMore.value || pending.value || !hasMore.value) return
+  loadingMore.value = true
+  loadMoreError.value = false
+  try {
+    const nextPage = await $fetch<ApiPostList>('/api/posts', {
+      query: {
+        limit: PAGE_SIZE,
+        offset: nextOffset.value,
+        cluster: activeCluster.value,
+        tag: activeTagQuery.value,
+      },
+    })
+    loadedPosts.value = [...loadedPosts.value, ...nextPage.posts]
+    total.value = nextPage.total
+    nextOffset.value += PAGE_SIZE
+  } catch {
+    loadMoreError.value = true
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+// Сентинел в конце ленты + IntersectionObserver — тот же паттерн, что и
+// в composables/useNextPost.ts/[slug].vue для бесшовной ленты постов.
+// rootMargin с запасом вперёд, чтобы следующая страница подгружалась
+// заранее, до того как пользователь реально долистает до низа.
+const sentinel = ref<HTMLElement | null>(null)
+const isSentinelVisible = ref(false)
+let observer: IntersectionObserver | null = null
+
+onMounted(() => {
+  observer = new IntersectionObserver(
+    ([entry]) => {
+      isSentinelVisible.value = entry?.isIntersecting ?? false
+    },
+    { rootMargin: '600px 0px' },
+  )
+  if (sentinel.value) observer.observe(sentinel.value)
+})
+
+onUnmounted(() => {
+  observer?.disconnect()
+  observer = null
+})
+
+// Реагируем не только на появление сентинела в зоне видимости, но и на
+// смену фильтра (hasMore/pending меняются) — если сентинел уже был виден
+// на экране в момент сброса ленты, срабатывание IntersectionObserver не
+// произойдёт само по себе (entry не меняется), поэтому проверяем условия
+// явным watch, а не полагаемся только на колбэк обсёрвера.
+watch([isSentinelVisible, hasMore, loadingMore, pending], () => {
+  if (isSentinelVisible.value && hasMore.value && !loadingMore.value && !pending.value) {
+    loadMore()
+  }
+})
+
+// Показываем кнопку "Наверх", когда лента реально закончилась (кандидаты
+// исчерпаны, не идёт дозагрузка) — то есть именно "самый конец", как
+// просили, а не просто "проскроллил немного вниз".
+const showBackToTop = computed(
+  () => !hasMore.value && !loadingMore.value && loadedPosts.value.length > 0,
+)
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function selectAll() {
-  router.push({ query: { ...route.query, cluster: undefined, tag: undefined, page: undefined } })
+  router.push({ query: { ...route.query, cluster: undefined, tag: undefined } })
 }
 
 function setCluster(cluster: string) {
-  router.push({
-    query: { ...route.query, cluster, tag: undefined, page: undefined },
-  })
+  router.push({ query: { ...route.query, cluster, tag: undefined } })
 }
 
 function selectYouLoveIt() {
-  router.push({
-    query: { ...route.query, cluster: undefined, tag: YOU_LOVE_IT_TAG, page: undefined },
-  })
+  router.push({ query: { ...route.query, cluster: undefined, tag: YOU_LOVE_IT_TAG } })
 }
 
 useSeoMeta({
@@ -127,12 +210,12 @@ useSeoMeta({
   <section>
     <h1>All posts</h1>
 
-    <div class="filters" v-if="clusters.length" :class="{ 'filters--pending': loading }">
+    <div class="filters" v-if="clusters.length" :class="{ 'filters--pending': pending }">
       <button
         type="button"
         class="filters__chip"
         :class="{ 'filters__chip--active': !activeCluster && !youLoveItOnly }"
-        :disabled="loading"
+        :disabled="pending"
         @click="selectAll"
       >
         Все рубрики
@@ -144,7 +227,7 @@ useSeoMeta({
         type="button"
         class="filters__chip"
         :class="{ 'filters__chip--active': activeCluster === cluster }"
-        :disabled="loading"
+        :disabled="pending"
         @click="setCluster(cluster)"
       >
         {{ clusterLabel(cluster) }}
@@ -154,7 +237,7 @@ useSeoMeta({
         type="button"
         class="filters__chip"
         :class="{ 'filters__chip--active': youLoveItOnly }"
-        :disabled="loading"
+        :disabled="pending"
         @click="selectYouLoveIt"
       >
         #YouLoveIt
@@ -164,10 +247,10 @@ useSeoMeta({
 
     <p v-if="initialLoading">Загрузка...</p>
     <p v-else-if="error">{{ error }}</p>
-    <template v-else-if="posts.length">
-      <div class="posts-list" :class="{ 'posts-list--pending': loading }">
+    <template v-else-if="loadedPosts.length">
+      <div class="posts-list" :class="{ 'posts-list--pending': pending && !initialLoading }">
         <PostCard
-          v-for="post in posts"
+          v-for="post in loadedPosts"
           :key="post.slug"
           :slug="post.slug"
           :title="post.title"
@@ -176,13 +259,30 @@ useSeoMeta({
           :tags="post.tags"
         />
       </div>
-      <nav class="pagination" v-if="totalPages > 1">
-        <button type="button" :disabled="page <= 1" @click="goToPage(page - 1)">← Назад</button>
-        <span class="pagination__status">{{ page }} / {{ totalPages }}</span>
-        <button type="button" :disabled="page >= totalPages" @click="goToPage(page + 1)">
-          Вперёд →
+
+      <!-- Скелетоны на время дозагрузки следующей порции — тот же принцип
+           пульсирующих плейсхолдеров, что в app.vue на странице поста. -->
+      <div class="feed-skeletons" v-if="loadingMore" aria-hidden="true">
+        <div class="feed-skeleton" v-for="n in 3" :key="n">
+          <div class="skeleton skeleton--line skeleton--title"></div>
+          <div class="skeleton skeleton--line"></div>
+          <div class="skeleton skeleton--line skeleton--short"></div>
+        </div>
+      </div>
+
+      <div class="feed-sentinel" ref="sentinel" aria-hidden="true"></div>
+
+      <div class="feed-end" v-if="showBackToTop">
+        <p class="feed-end__text">Вы посмотрели все посты.</p>
+        <button type="button" class="feed-end__top-btn" @click="scrollToTop">
+          ↑ Вернуться в начало
         </button>
-      </nav>
+      </div>
+
+      <div class="feed-error" v-if="loadMoreError">
+        <span>Не удалось загрузить ещё посты.</span>
+        <button type="button" @click="loadMore">Повторить</button>
+      </div>
     </template>
     <p v-else>Постов пока нет.</p>
   </section>
@@ -248,30 +348,102 @@ useSeoMeta({
   pointer-events: none;
 }
 
-.pagination {
+.feed-skeletons {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-top: 1.5rem;
 }
 
-.pagination button {
-  padding: 0.4rem 0.9rem;
+.feed-skeleton {
+  padding: 0.25rem 0;
+}
+
+.skeleton {
+  background: var(--color-border);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton--title {
+  height: 1.3rem;
+  width: 55%;
+  margin-bottom: 0.6rem;
+}
+
+.skeleton--line {
+  height: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton--short {
+  width: 40%;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.feed-sentinel {
+  height: 1px;
+}
+
+.feed-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.feed-end__text {
+  opacity: 0.6;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.feed-end__top-btn {
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.feed-end__top-btn:hover {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-color: var(--color-accent);
+}
+
+.feed-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.feed-error button {
+  padding: 0.35rem 0.8rem;
   border-radius: 6px;
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
-}
-
-.pagination button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pagination__status {
-  font-size: 0.9rem;
-  opacity: 0.7;
 }
 </style>
