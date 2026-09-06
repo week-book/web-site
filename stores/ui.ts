@@ -1,16 +1,17 @@
-import { defineStore, skipHydrate } from 'pinia'
-import { ref } from 'vue'
+import { defineStore } from 'pinia'
 
 export const useUiStore = defineStore('ui', () => {
-  const theme = ref(import.meta.client ? localStorage.getItem('theme') || 'light' : 'light')
+  const themeCookie = useCookie<'light' | 'dark'>('theme', {
+    default: () => 'light',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax',
+  })
 
-  function setTheme(t: string) {
-    theme.value = t
-    if (import.meta.client) {
-      localStorage.setItem('theme', t)
-      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '')
-    }
+  const theme = computed(() => themeCookie.value)
+
+  function setTheme(t: 'light' | 'dark') {
+    themeCookie.value = t
   }
 
-  return { theme: skipHydrate(theme), setTheme }
+  return { theme, setTheme }
 })

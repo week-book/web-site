@@ -22,7 +22,17 @@ import { useUiStore } from '/stores/ui'
 const ui = useUiStore()
 
 useHead({
-  htmlAttrs: { lang: 'ru' },
+  htmlAttrs: {
+    lang: 'ru',
+    // Тема теперь в cookie (см. stores/ui.ts), не в localStorage — она
+    // доступна серверу при SSR, поэтому data-theme можно выставить прямо
+    // здесь как реактивное значение. Nuxt/unhead сам следит за computed
+    // и обновляет атрибут и на сервере (в момент рендера), и на клиенте
+    // (когда пользователь переключает тему через ThemeToggle) — без
+    // инлайн-скриптов и без onMounted, которые были нужны при старом
+    // подходе через localStorage и давали заметный FOUC/hydration mismatch.
+    'data-theme': computed(() => (ui.theme === 'dark' ? 'dark' : undefined)),
+  },
   meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
   link: [
     { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
@@ -32,10 +42,6 @@ useHead({
     { rel: 'sitemap', type: 'application/xml', href: '/sitemap.xml' },
     { rel: 'manifest', href: '/manifest.webmanifest' },
   ],
-})
-
-onMounted(() => {
-  document.documentElement.setAttribute('data-theme', ui.theme === 'dark' ? 'dark' : '')
 })
 </script>
 
