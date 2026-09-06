@@ -219,7 +219,10 @@ useSeoMeta({
         @click="selectAll"
       >
         Все рубрики
-        <span class="filters__count" v-if="countsData">{{ countsData.all }}</span>
+        <span class="filters__count">
+          <span v-if="countsData">{{ countsData.all }}</span>
+          <span v-else class="filters__count-skeleton" aria-hidden="true"></span>
+        </span>
       </button>
       <button
         v-for="cluster in clusters"
@@ -231,7 +234,10 @@ useSeoMeta({
         @click="setCluster(cluster)"
       >
         {{ clusterLabel(cluster) }}
-        <span class="filters__count" v-if="countsData">{{ countFor(cluster) }}</span>
+        <span class="filters__count">
+          <span v-if="countsData">{{ countFor(cluster) }}</span>
+          <span v-else class="filters__count-skeleton" aria-hidden="true"></span>
+        </span>
       </button>
       <button
         type="button"
@@ -241,7 +247,10 @@ useSeoMeta({
         @click="selectYouLoveIt"
       >
         #YouLoveIt
-        <span class="filters__count" v-if="countsData">{{ countsData.youLoveIt }}</span>
+        <span class="filters__count">
+          <span v-if="countsData">{{ countsData.youLoveIt }}</span>
+          <span v-else class="filters__count-skeleton" aria-hidden="true"></span>
+        </span>
       </button>
     </div>
 
@@ -331,6 +340,23 @@ useSeoMeta({
   margin-left: 0.4em;
   opacity: 0.6;
   font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Фиксированная ширина под 1-3 цифры — не даёт чипам "прыгать" по
+     ширине в момент, когда цифры подгружаются позже самого чипа
+     (countsData грузится без блокировки первого рендера, см. выше). */
+  min-width: 1.4em;
+}
+
+.filters__count-skeleton {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.75em;
+  border-radius: 3px;
+  background: currentColor;
+  opacity: 0.35;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
 .filters__chip--active .filters__count {
